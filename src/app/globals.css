@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+:root {
+  --th-bg: #0a0a0f;
+  --th-surface: #13111a;
+  --th-surface-hover: #1a1625;
+  --th-border: #2d2640;
+  --th-border-hover: #b45309;
+  --th-accent: #d97706;
+  --th-accent-light: #fbbf24;
+  --th-text: #e4e0ed;
+  --th-text-muted: #9892a6;
+  --th-text-dim: #6b6480;
+}
+
+body {
+  background: var(--th-bg);
+}
+
+/* Glow card hover effect */
+.card-glow {
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.card-glow:hover {
+  border-color: rgba(217, 119, 6, 0.35);
+  box-shadow:
+    0 0 20px rgba(217, 119, 6, 0.08),
+    0 0 40px rgba(217, 119, 6, 0.04);
+}
+
+/* Stat card shimmer top border */
+.stat-glow {
+  position: relative;
+  overflow: hidden;
+}
+.stat-glow::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--th-accent), transparent);
+  opacity: 0.6;
+}
+
+/* Button glow */
+.btn-enchanted {
+  transition: all 0.2s ease;
+}
+.btn-enchanted:hover:not(:disabled) {
+  box-shadow: 0 0 16px rgba(217, 119, 6, 0.3);
+}
+
+/* Loading spinner */
+.spinner-enchanted {
+  border-color: var(--th-border);
+  border-top-color: var(--th-accent-light);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--th-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--th-accent);
+}

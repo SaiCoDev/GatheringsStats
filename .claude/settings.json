@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx next:*)",
+      "Bash(curl -s -w \"\\\\n%{http_code}\" -H \"x-api-key: 01KH3ESS6XDXY59T75VREZ621Q\" -H \"Content-Type: application/json\" \"https://gatherings.franchise.minecraft-services.net/api/v2.0/experiences\")",
+      "Bash(curl -s -w \"\\\\nHTTP_CODE:%{http_code}\" -H \"Authorization: Bearer 01KH3ESS6XDXY59T75VREZ621Q\" -H \"Content-Type: application/json\" \"https://gatherings.franchise.minecraft-services.net/api/v2.0/experiences\")",
+      "Bash(curl -s -w \"\\\\nHTTP_CODE:%{http_code}\" -H \"x-api-key: 01KH3ESS6XDXY59T75VREZ621Q\" \"https://gatherings.franchise.minecraft-services.net/api/v2.0/auth/roles\")",
+      "Bash(curl -s -i -H \"x-api-key: 01KH3ESS6XDXY59T75VREZ621Q\" \"https://gatherings.franchise.minecraft-services.net/api/v2.0/auth/roles\")",
+      "Bash(xargs -I {} basename {})",
+      "Bash(curl -s -H \"Authorization: Bearer 01KH3ESS6XDXY59T75VREZ621Q\" \"https://gatherings.franchise.minecraft-services.net/api/v2.0\")",
+      "Bash(curl -sv -H \"Authorization: Bearer 01KH3ESS6XDXY59T75VREZ621Q\" \"https://gatherings.franchise.minecraft-services.net/api/v2.0/\")",
+      "Bash(curl -s -H \"Authorization: Bearer 01KH3ESS6XDXY59T75VREZ621Q\" \"https://gatherings.franchise.minecraft-services.net/api/v2.0/servers\")",
+      "Bash(curl -s -H \"Authorization: Bearer 01KH3ESS6XDXY59T75VREZ621Q\" \"https://gatherings.franchise.minecraft-services.net/api/v2.0/status\")",
+      "Bash(curl -s -H \"Authorization: Bearer 01KH3ESS6XDXY59T75VREZ621Q\" \"https://gatherings.franchise.minecraft-services.net/api/v2.0/stats\")",
+      "Bash(curl -si -H \"Authorization: Bearer 01KH3ESS6XDXY59T75VREZ621Q\" \"https://gatherings.franchise.minecraft-services.net/api/v2.0/servers\")",
+      "Bash(curl -s -w \"\\\\nHTTP:%{http_code}\" -H \"x-api-key: 01KH3ESS6XDXY59T75VREZ621Q\" \"https://gatherings.franchise.minecraft-services.net/api/v2.0/auth/creator\")",
+      "Bash(curl -s -w \"\\\\nHTTP:%{http_code}\" \"https://gatherings.franchise.minecraft-services.net/api/v2.0/discovery/client\")",
+      "Bash(node -e \":*)",
+      "WebFetch(domain:enchanted.gg)",
+      "WebFetch(domain:web.archive.org)",
+      "WebFetch(domain:discord.gg)"
+    ]
+  }
+}
