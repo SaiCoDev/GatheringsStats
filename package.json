@@ -7,7 +7,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "cf:build": "opennextjs-cloudflare build",
+    "cf:preview": "opennextjs-cloudflare build && wrangler dev",
+    "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
   },
   "repository": {
     "type": "git",
@@ -22,16 +25,20 @@
   },
   "homepage": "https://github.com/SaiCoDev/GatheringsStats#readme",
   "dependencies": {
+    "@opennextjs/cloudflare": "^1.17.1",
     "@supabase/supabase-js": "^2.99.1",
     "@tailwindcss/postcss": "^4.2.1",
     "@types/node": "^25.5.0",
     "@types/react": "^19.2.14",
     "lucide-react": "^0.577.0",
-    "next": "^16.1.6",
+    "next": "^15.5.12",
     "postcss": "^8.5.8",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "tailwindcss": "^4.2.1",
     "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "wrangler": "^4.73.0"
   }
 }

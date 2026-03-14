@@ -1,13 +1,6 @@
-# Copy this file to `.env.local` for local Next.js development or `.dev.vars` for Wrangler local preview.
-# NEVER commit either file.
-
 GATHERINGS_API_KEY=your_api_key_here
 GATHERINGS_API_BASE_URL=https://gatherings.franchise.minecraft-services.net/api/v2.0
 GATHERINGS_LIVE_ENDPOINT=/experiences
-
-# Supabase - find these in your Supabase project Settings > API
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
-
-# Cron protection - set the same secret in Cloudflare Workers secrets
 CRON_SECRET=your_random_secret_here
