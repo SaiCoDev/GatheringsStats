@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPlayerMetricsLimited, getPlayerNamesByPfids, type PlayerMetric } from "@/lib/queries";
+import { allowRefresh, cooldownRemaining } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,8 @@ interface PlayersResponse {
   limit: number;
   offset: number;
   cachedAt: number;
+  rateLimited?: boolean;
+  cooldown?: number;
 }
 
 const playersCache = new Map<string, PlayersResponse>();
@@ -19,7 +22,8 @@ const playersCache = new Map<string, PlayersResponse>();
 export async function GET(req: NextRequest) {
   const requestedLimit = parseInt(req.nextUrl.searchParams.get("limit") ?? `${DEFAULT_LIMIT}`, 10);
   const requestedOffset = parseInt(req.nextUrl.searchParams.get("offset") ?? "0", 10);
-  const refresh = req.nextUrl.searchParams.get("refresh") === "1";
+  const wantsRefresh = req.nextUrl.searchParams.get("refresh") === "1";
+  const refresh = wantsRefresh && allowRefresh("players");
 
   const limit = Number.isFinite(requestedLimit)
     ? Math.min(Math.max(requestedLimit, 1), MAX_LIMIT)
@@ -31,7 +35,12 @@ export async function GET(req: NextRequest) {
     playersCache.clear();
   } else {
     const cached = playersCache.get(cacheKey);
-    if (cached) return NextResponse.json(cached);
+    if (cached) {
+      const response = wantsRefresh && !refresh
+        ? { ...cached, rateLimited: true, cooldown: cooldownRemaining("players") }
+        : cached;
+      return NextResponse.json(response);
+    }
   }
 
   try {
