@@ -34,6 +34,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ boards, ...rateLimitInfo });
   }
 
+  // Return all boards with their top entries in a single response
+  if (action === "all") {
+    const limit = parseInt(req.nextUrl.searchParams.get("limit") ?? "100", 10);
+    const boards: Record<string, { entries: LeaderboardEntry[]; total: number }> = {};
+    for (const [id, entries] of Object.entries(grouped)) {
+      boards[id] = { entries: entries.slice(0, limit), total: entries.length };
+    }
+    return NextResponse.json({ boards, cachedAt: gameData.cachedAt, ...rateLimitInfo });
+  }
+
   const boardId = req.nextUrl.searchParams.get("board");
   const offset = parseInt(req.nextUrl.searchParams.get("offset") ?? "0", 10);
   const limit = parseInt(req.nextUrl.searchParams.get("limit") ?? "100", 10);

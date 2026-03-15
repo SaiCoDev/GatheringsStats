@@ -8,72 +8,41 @@ import type { LeaderboardEntry } from "@/lib/queries";
 
 const PER_BOARD_LIMIT = 100;
 
-interface BoardInfo {
-  id: string;
-  count: number;
-}
-
 interface BoardData {
   entries: LeaderboardEntry[];
   total: number;
-  loading: boolean;
-  loadingMore: boolean;
 }
 
 export default function LeaderboardsPage() {
-  const [boards, setBoards] = useState<BoardInfo[]>([]);
   const [boardData, setBoardData] = useState<Record<string, BoardData>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [cachedAt, setCachedAt] = useState<number>(0);
   const [activeCategory, setActiveCategory] = useState<string>("all");
 
-  const fetchBoardList = useCallback(async (refresh = false) => {
+  const fetchAll = useCallback(async (refresh = false) => {
     const qs = refresh ? "&refresh=1" : "";
-    const res = await fetch(`/api/leaderboards?action=list${qs}`);
-    const { boards: b } = (await res.json()) as { boards: BoardInfo[] };
-    setBoards(b);
-
-    const initial: Record<string, BoardData> = {};
-    for (const board of b) {
-      initial[board.id] = { entries: [], total: board.count, loading: true, loadingMore: false };
-    }
-    setBoardData(initial);
-    setCachedAt(Date.now());
+    const res = await fetch(`/api/leaderboards?action=all&limit=${PER_BOARD_LIMIT}${qs}`);
+    const json = await res.json() as {
+      boards: Record<string, { entries: LeaderboardEntry[]; total: number }>;
+      cachedAt: number;
+    };
+    setBoardData(json.boards);
+    setCachedAt(json.cachedAt);
     setLoading(false);
     setRefreshing(false);
-
-    const BATCH = 10;
-    for (let i = 0; i < b.length; i += BATCH) {
-      const batch = b.slice(i, i + BATCH);
-      const results = await Promise.all(
-        batch.map(async (board) => {
-          const r = await fetch(
-            `/api/leaderboards?board=${encodeURIComponent(board.id)}&limit=${PER_BOARD_LIMIT}`
-          );
-          return { id: board.id, ...(await r.json()) as { entries: LeaderboardEntry[]; total: number } };
-        })
-      );
-      setBoardData((prev) => {
-        const next = { ...prev };
-        for (const { id, entries, total } of results) {
-          next[id] = { entries, total, loading: false, loadingMore: false };
-        }
-        return next;
-      });
-    }
   }, []);
 
   useEffect(() => {
-    fetchBoardList();
-  }, [fetchBoardList]);
+    fetchAll();
+  }, [fetchAll]);
 
   const loadMore = async (boardId: string) => {
     const current = boardData[boardId];
     if (!current) return;
     setBoardData((prev) => ({
       ...prev,
-      [boardId]: { ...prev[boardId], loadingMore: true },
+      [boardId]: { ...prev[boardId], loading: true },
     }));
 
     const offset = current.entries.length;
@@ -87,7 +56,6 @@ export default function LeaderboardsPage() {
       [boardId]: {
         ...prev[boardId],
         entries: [...prev[boardId].entries, ...more],
-        loadingMore: false,
       },
     }));
   };
@@ -95,9 +63,8 @@ export default function LeaderboardsPage() {
   const handleRefresh = async () => {
     setRefreshing(true);
     setLoading(true);
-    // Trigger a fresh snapshot from the game server
     await fetch("/api/game-data-snapshot", { method: "POST" });
-    fetchBoardList(true);
+    fetchAll(true);
   };
 
   if (loading) {
@@ -108,30 +75,32 @@ export default function LeaderboardsPage() {
     );
   }
 
-  const categories: Record<string, BoardInfo[]> = {};
-  for (const b of boards) {
-    const parts = b.id.split("-");
+  const boardIds = Object.keys(boardData).sort();
+  const totalEntries = Object.values(boardData).reduce((s, b) => s + b.total, 0);
+
+  const categories: Record<string, string[]> = {};
+  for (const id of boardIds) {
+    const parts = id.split("-");
     const mineIdx = parts.indexOf("mine");
     const globalIdx = parts.indexOf("global");
     const cutIdx = mineIdx !== -1 ? mineIdx : globalIdx !== -1 ? globalIdx : parts.length;
     const cat = parts.slice(0, cutIdx).join("-");
-    (categories[cat] ??= []).push(b);
+    (categories[cat] ??= []).push(id);
   }
 
   for (const cat of Object.keys(categories)) {
     categories[cat].sort((a, b) => {
-      const aIsGlobal = a.id.endsWith("-global");
-      const bIsGlobal = b.id.endsWith("-global");
+      const aIsGlobal = a.endsWith("-global");
+      const bIsGlobal = b.endsWith("-global");
       if (aIsGlobal && !bIsGlobal) return -1;
       if (!aIsGlobal && bIsGlobal) return 1;
-      const aNum = parseInt(a.id.match(/mine-(\d+)$/)?.[1] ?? "0", 10);
-      const bNum = parseInt(b.id.match(/mine-(\d+)$/)?.[1] ?? "0", 10);
+      const aNum = parseInt(a.match(/mine-(\d+)$/)?.[1] ?? "0", 10);
+      const bNum = parseInt(b.match(/mine-(\d+)$/)?.[1] ?? "0", 10);
       return aNum - bNum;
     });
   }
 
   const categoryNames = Object.keys(categories).sort();
-  const totalEntries = boards.reduce((s, b) => s + b.count, 0);
   const visibleCategories =
     activeCategory === "all" ? categoryNames : [activeCategory];
 
@@ -144,7 +113,7 @@ export default function LeaderboardsPage() {
             <h1 className="text-3xl font-bold text-white">Leaderboards</h1>
           </div>
           <p className="mt-1 text-[#9892a6]">
-            {boards.length} boards &middot; {totalEntries.toLocaleString()} total entries
+            {boardIds.length} boards &middot; {totalEntries.toLocaleString()} total entries
           </p>
         </div>
         <DataStatus onRefresh={handleRefresh} refreshing={refreshing} cachedAt={cachedAt || undefined} />
@@ -160,7 +129,7 @@ export default function LeaderboardsPage() {
               : "text-[#9892a6] hover:bg-[#1a1625] hover:text-[#e4e0ed]"
           }`}
         >
-          All ({boards.length})
+          All ({boardIds.length})
         </button>
         {categoryNames.map((cat) => (
           <button
@@ -184,19 +153,19 @@ export default function LeaderboardsPage() {
             {formatCategoryName(cat)}
           </h2>
           <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-            {categories[cat].map((board) => (
+            {categories[cat].map((id) => (
               <LeaderboardCard
-                key={board.id}
-                board={board}
-                data={boardData[board.id]}
-                onLoadMore={() => loadMore(board.id)}
+                key={id}
+                boardId={id}
+                data={boardData[id]}
+                onLoadMore={() => loadMore(id)}
               />
             ))}
           </div>
         </div>
       ))}
 
-      {boards.length === 0 && (
+      {boardIds.length === 0 && (
         <Card>
           <p className="text-[#9892a6]">No leaderboard data yet.</p>
         </Card>
@@ -206,16 +175,23 @@ export default function LeaderboardsPage() {
 }
 
 function LeaderboardCard({
-  board,
+  boardId,
   data,
   onLoadMore,
 }: {
-  board: BoardInfo;
+  boardId: string;
   data?: BoardData;
   onLoadMore: () => void;
 }) {
+  const [loadingMore, setLoadingMore] = useState(false);
   const hasMore = data ? data.total > data.entries.length : false;
-  const isGlobal = board.id.endsWith("-global");
+  const isGlobal = boardId.endsWith("-global");
+
+  const handleLoadMore = async () => {
+    setLoadingMore(true);
+    await onLoadMore();
+    setLoadingMore(false);
+  };
 
   return (
     <Card className={isGlobal ? "border-amber-500/30" : ""}>
@@ -227,15 +203,15 @@ function LeaderboardCard({
             <Mountain className="h-4 w-4 text-[#6b6480]" />
           )}
           <h3 className="text-sm font-semibold text-white">
-            {formatBoardName(board.id)}
+            {formatBoardName(boardId)}
           </h3>
         </div>
         <span className="text-xs text-[#6b6480]">
-          {data && !data.loading ? `${data.entries.length} / ${data.total}` : `${board.count}`}
+          {data ? `${data.entries.length} / ${data.total}` : "0"}
         </span>
       </div>
 
-      {!data || data.loading ? (
+      {!data ? (
         <div className="flex justify-center py-4">
           <div className="h-4 w-4 animate-spin rounded-full border-2 spinner-enchanted" />
         </div>
@@ -275,12 +251,12 @@ function LeaderboardCard({
           </div>
           {hasMore && (
             <button
-              onClick={onLoadMore}
-              disabled={data.loadingMore}
+              onClick={handleLoadMore}
+              disabled={loadingMore}
               className="btn-enchanted mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-[#2d2640] bg-[#0a0a0f] py-1.5 text-xs text-[#9892a6] transition-all hover:border-amber-500/40 hover:text-amber-300 disabled:opacity-50"
             >
               <ChevronDown className="h-3 w-3" />
-              {data.loadingMore
+              {loadingMore
                 ? "Loading..."
                 : `Load more (${data.total - data.entries.length} remaining)`}
             </button>
