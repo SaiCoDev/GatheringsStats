@@ -18,7 +18,7 @@ async function fetchAll<T>(
     let query = gameSupabase.from(table).select("*").range(from, from + PAGE_SIZE - 1);
     if (opts?.order) query = query.order(opts.order.column, { ascending: opts.order.ascending });
     const { data, error } = await query;
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(`${table}: ${error.message}`);
     if (!data || data.length === 0) break;
     results.push(...(data as T[]));
     if (data.length < PAGE_SIZE) break;

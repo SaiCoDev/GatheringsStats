@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { RefreshCw, Database, Clock } from "lucide-react";
 
 const COOLDOWN_SECONDS = 60;
@@ -16,6 +16,8 @@ export function DataStatus({
 }) {
   const [cooldown, setCooldown] = useState(0);
   const [, setTick] = useState(0);
+  const [flash, setFlash] = useState(false);
+  const prevCachedAt = useRef(cachedAt);
 
   // Auto-tick to keep "ago" labels fresh
   useEffect(() => {
@@ -30,6 +32,20 @@ export function DataStatus({
     if (age < 5) {
       setCooldown(COOLDOWN_SECONDS);
     }
+  }, [cachedAt]);
+
+  // Flash when cachedAt changes (new data arrived)
+  useEffect(() => {
+    if (cachedAt && prevCachedAt.current && cachedAt !== prevCachedAt.current) {
+      setFlash(true);
+      const timer = setTimeout(() => setFlash(false), 1200);
+      return () => clearTimeout(timer);
+    }
+    prevCachedAt.current = cachedAt;
+  }, [cachedAt]);
+
+  useEffect(() => {
+    prevCachedAt.current = cachedAt;
   }, [cachedAt]);
 
   // Tick down the cooldown
@@ -50,10 +66,10 @@ export function DataStatus({
   };
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-[#2d2640] bg-[#13111a]/80 px-3 py-2">
+    <div className={`flex items-center gap-3 rounded-lg border bg-[#13111a]/80 px-3 py-2 transition-all duration-700 ${flash ? "border-amber-500/50 shadow-[0_0_12px_rgba(217,119,6,0.15)]" : "border-[#2d2640]"}`}>
       <div className="flex items-center gap-2 text-xs text-[#9892a6]">
-        <Database className="h-3.5 w-3.5 text-[#6b6480]" />
-        <span>Data synced</span>
+        <Database className={`h-3.5 w-3.5 transition-colors duration-700 ${flash ? "text-amber-400" : "text-[#6b6480]"}`} />
+        <span className={flash ? "data-flash" : ""}>Data synced</span>
         {cachedAt ? (
           <span className="flex items-center gap-1 text-[#e4e0ed]">
             <Clock className="h-3 w-3 text-[#6b6480]" />

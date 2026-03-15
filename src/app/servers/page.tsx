@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Card, StatCard } from "@/components/Card";
+import { Card, StatCard, FlashValue } from "@/components/Card";
 import { ErrorBox } from "@/components/ErrorBox";
 import { Server, Users, Cpu, Globe } from "lucide-react";
 import { DataStatus } from "@/components/DataStatus";
+import { OnlineBanner } from "@/components/OnlineBanner";
 
 const POLL_INTERVAL = 30_000; // 30s — read latest snapshot from Supabase
 
@@ -127,22 +128,27 @@ export default function ServersPage() {
 
       {error && <ErrorBox message={error} />}
 
+      <OnlineBanner />
+
       {/* Overview Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Total Servers"
           value={totalServers}
           icon={<Server className="h-5 w-5" />}
+          refreshKey={latest?.captured_at}
         />
         <StatCard
           label="Total Players"
           value={totalPlayers}
           icon={<Users className="h-5 w-5" />}
+          refreshKey={latest?.captured_at}
         />
         <StatCard
           label="Max Capacity"
           value={maxCapacity}
           icon={<Cpu className="h-5 w-5" />}
+          refreshKey={latest?.captured_at}
         />
         <StatCard
           label="Regions"
@@ -153,6 +159,7 @@ export default function ServersPage() {
               : undefined
           }
           icon={<Globe className="h-5 w-5" />}
+          refreshKey={latest?.captured_at}
         />
       </div>
 
@@ -200,9 +207,9 @@ export default function ServersPage() {
                           {e.mode}
                         </span>
                       </td>
-                      <td className="py-3 pr-4">{e.servers}</td>
-                      <td className="py-3 pr-4">{e.playerCount}</td>
-                      <td className="py-3 pr-4">{e.maxCapacity}</td>
+                      <td className="py-3 pr-4"><FlashValue value={e.servers}>{e.servers}</FlashValue></td>
+                      <td className="py-3 pr-4"><FlashValue value={e.playerCount}>{e.playerCount}</FlashValue></td>
+                      <td className="py-3 pr-4"><FlashValue value={e.maxCapacity}>{e.maxCapacity}</FlashValue></td>
                       <td className="py-3">
                         <div className="flex items-center gap-2">
                           <div className="h-2 w-20 rounded-full bg-zinc-800">
@@ -238,31 +245,14 @@ export default function ServersPage() {
                     ? (data.playerCount / data.maxCapacity) * 100
                     : 0;
                 return (
-                  <Card key={region}>
-                    <p className="text-sm font-medium text-zinc-400">{region}</p>
-                    <div className="mt-2 flex items-baseline gap-2">
-                      <span className="text-2xl font-semibold text-white">
-                        {data.playerCount}
-                      </span>
-                      <span className="text-sm text-zinc-500">
-                        / {data.maxCapacity} players
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs text-zinc-500">
-                      {data.servers} server{data.servers !== 1 ? "s" : ""}
-                    </p>
-                    <div className="mt-3 flex items-center gap-2">
-                      <div className="h-2 flex-1 rounded-full bg-zinc-800">
-                        <div
-                          className="h-2 rounded-full bg-emerald-500"
-                          style={{ width: `${Math.min(usage, 100)}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-zinc-400">
-                        {usage.toFixed(0)}%
-                      </span>
-                    </div>
-                  </Card>
+                  <StatCard
+                    key={region}
+                    label={region}
+                    value={`${data.playerCount} / ${data.maxCapacity}`}
+                    sub={`${data.servers} server${data.servers !== 1 ? "s" : ""} · ${usage.toFixed(0)}% usage`}
+                    icon={<Globe className="h-5 w-5" />}
+                    refreshKey={latest?.captured_at}
+                  />
                 );
               })}
           </div>
@@ -332,9 +322,9 @@ export default function ServersPage() {
           <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-400">
             Recent Snapshots
           </h3>
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-[440px]">
             <table className="w-full text-left text-sm">
-              <thead>
+              <thead className="sticky top-0 bg-[#13111a] z-10">
                 <tr className="border-b border-zinc-800 text-zinc-400">
                   <th className="pb-3 pr-4 font-medium">Time</th>
                   <th className="pb-3 pr-4 font-medium">Servers</th>
@@ -344,7 +334,7 @@ export default function ServersPage() {
                 </tr>
               </thead>
               <tbody>
-                {history.slice(0, 20).map((s) => {
+                {history.slice(0, 10).map((s) => {
                   const usage =
                     s.max_capacity > 0
                       ? (s.total_players / s.max_capacity) * 100

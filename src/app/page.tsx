@@ -3,6 +3,7 @@
 import { useGameData } from "@/lib/useGameData";
 import { StatCard, Card } from "@/components/Card";
 import { DataStatus } from "@/components/DataStatus";
+import { OnlineBanner } from "@/components/OnlineBanner";
 import { Users, Clock, TrendingUp, Coins, ShoppingCart, Star, Bug, MessageCircle, Calendar, Pickaxe } from "lucide-react";
 
 export default function DashboardPage() {
@@ -54,6 +55,8 @@ export default function DashboardPage() {
         </div>
         <DataStatus onRefresh={refresh} refreshing={refreshing} cachedAt={data.cachedAt} />
       </div>
+
+      <OnlineBanner />
 
       {/* Player & game stats with activity icons */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

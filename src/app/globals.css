@@ -52,6 +52,47 @@ body {
   box-shadow: 0 0 16px rgba(217, 119, 6, 0.3);
 }
 
+/* Data-update flash animation */
+@keyframes data-flash {
+  0% {
+    color: #fbbf24;
+    text-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+  }
+  100% {
+    color: inherit;
+    text-shadow: none;
+  }
+}
+@keyframes border-flash {
+  0% {
+    border-color: rgba(217, 119, 6, 0.6);
+    box-shadow: 0 0 12px rgba(217, 119, 6, 0.15);
+  }
+  100% {
+    border-color: #2d2640;
+    box-shadow: none;
+  }
+}
+.data-flash {
+  animation: data-flash 1.2s ease-out;
+}
+.card-flash {
+  animation: border-flash 1.2s ease-out;
+}
+@keyframes border-pulse {
+  0% {
+    border-color: rgba(148, 130, 166, 0.5);
+    box-shadow: 0 0 8px rgba(148, 130, 166, 0.1);
+  }
+  100% {
+    border-color: #2d2640;
+    box-shadow: none;
+  }
+}
+.card-pulse {
+  animation: border-pulse 0.8s ease-out;
+}
+
 /* Loading spinner */
 .spinner-enchanted {
   border-color: var(--th-border);
