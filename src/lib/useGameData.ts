@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GameData } from "./cache";
 
 type GameDataField = "players" | "market" | "ratings" | "feedback" | "cycles" | "leaderboards";
@@ -15,13 +15,20 @@ export function useGameData(fields?: GameDataField[]) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fieldsQuery = fields ? `?fields=${fields.join(",")}` : "";
+  // Stabilize fields so it doesn't cause re-fetches on every render
+  const fieldsKey = fields ? fields.sort().join(",") : "";
+  const fieldsQuery = useMemo(
+    () => (fieldsKey ? `?fields=${fieldsKey}` : ""),
+    [fieldsKey]
+  );
+  const fieldsQueryRef = useRef(fieldsQuery);
+  fieldsQueryRef.current = fieldsQuery;
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/game-data${fieldsQuery}`);
+      const res = await fetch(`/api/game-data${fieldsQueryRef.current}`);
       if (!res.ok) throw new Error("Failed to fetch data");
       const json: GameData = await res.json();
       setData(json);
@@ -30,7 +37,7 @@ export function useGameData(fields?: GameDataField[]) {
     } finally {
       setLoading(false);
     }
-  }, [fieldsQuery]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetchData();
@@ -43,7 +50,8 @@ export function useGameData(fields?: GameDataField[]) {
     try {
       const snapRes = await fetch("/api/game-data-snapshot", { method: "POST" });
       if (!snapRes.ok) throw new Error("Failed to sync data from game server");
-      const refreshQuery = fieldsQuery ? `${fieldsQuery}&refresh=1` : "?refresh=1";
+      const q = fieldsQueryRef.current;
+      const refreshQuery = q ? `${q}&refresh=1` : "?refresh=1";
       const res = await fetch(`/api/game-data${refreshQuery}`);
       if (!res.ok) throw new Error("Failed to fetch data");
       const json: GameData = await res.json();
@@ -53,7 +61,7 @@ export function useGameData(fields?: GameDataField[]) {
     } finally {
       setRefreshing(false);
     }
-  }, [fieldsQuery]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return { data, loading, refreshing, error, refresh };
 }
