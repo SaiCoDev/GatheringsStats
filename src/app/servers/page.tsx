@@ -828,23 +828,38 @@ function LiveServerInstances({ servers }: { servers: ServerInstance[] }) {
   const hasFetched = useRef(false);
 
   const pingServers = useCallback(async () => {
+    if (servers.length === 0) return;
     setPinging(true);
     try {
-      const res = await fetch("/api/gatherings-explore?type=servers");
-      const json = await res.json();
-      if (res.ok && Array.isArray(json.result)) {
-        const map: Record<string, { players: number; maxPlayers: number }> = {};
-        for (const srv of json.result) {
-          if (srv.pingOnline && srv.players != null) {
-            const key = `${srv.ipV4Address}:${srv.gameplayPort}`;
-            map[key] = { players: srv.players, maxPlayers: srv.maxPlayers ?? 0 };
-          }
-        }
-        setPingData(map);
+      // Deduplicate endpoints
+      const unique = new Map<string, { ip: string; port: number }>();
+      for (const s of servers) {
+        const key = `${s.ipV4Address}:${s.gameplayPort}`;
+        if (!unique.has(key)) unique.set(key, { ip: s.ipV4Address, port: s.gameplayPort });
       }
+      // Ping each via public API directly from the browser
+      const entries = [...unique.entries()];
+      const results = await Promise.allSettled(
+        entries.map(async ([, ep]) => {
+          const res = await fetch(`https://api.mcsrvstat.us/bedrock/3/${ep.ip}:${ep.port}`);
+          if (!res.ok) return null;
+          return res.json();
+        })
+      );
+      const map: Record<string, { players: number; maxPlayers: number }> = {};
+      for (let i = 0; i < entries.length; i++) {
+        const r = results[i];
+        if (r.status === "fulfilled" && r.value?.online) {
+          map[entries[i][0]] = {
+            players: r.value.players?.online ?? 0,
+            maxPlayers: r.value.players?.max ?? 0,
+          };
+        }
+      }
+      setPingData(map);
     } catch { /* ignore */ }
     setPinging(false);
-  }, []);
+  }, [servers]);
 
   // Auto-fetch pings when expanded for the first time
   useEffect(() => {
