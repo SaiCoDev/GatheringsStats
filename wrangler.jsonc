@@ -19,12 +19,6 @@
     "binding": "IMAGES"
   },
   "workers_dev": true,
-  "routes": [
-    {
-      "pattern": "treasurestats.enchanted.dev",
-      "custom_domain": true
-    }
-  ],
   "services": [
     {
       "binding": "WORKER_SELF_REFERENCE",
