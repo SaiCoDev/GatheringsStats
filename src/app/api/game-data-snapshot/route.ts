@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabase } from "@/lib/supabase";
+import { getGameSupabase } from "@/lib/supabase";
 import {
   getPlayerMetrics,
   getMarketListings,
   getFeedbackRatings,
   getPlayerFeedback,
   getDailyCycles,
-  getLeaderboards,
 } from "@/lib/queries";
+import type { LeaderboardEntry } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -30,8 +31,21 @@ async function captureGameDataSnapshot() {
     const feedback = await getPlayerFeedback();
     step = "cycles";
     const cycles = await getDailyCycles();
+    // Fetch leaderboards with a single large query (top 5000 by score)
+    // to avoid blowing through Cloudflare's 50 subrequest limit.
+    // Full fetchAll would need 40+ paginated requests for 40k rows.
     step = "leaderboards";
-    const leaderboards = await getLeaderboards();
+    const gameSupabase = getGameSupabase();
+    let leaderboards: LeaderboardEntry[] = [];
+    if (gameSupabase) {
+      const { data, error: lbErr } = await gameSupabase
+        .from("leaderboards")
+        .select("*")
+        .order("score", { ascending: false })
+        .limit(5000);
+      if (lbErr) throw new Error(`leaderboards: ${lbErr.message}`);
+      leaderboards = (data ?? []) as LeaderboardEntry[];
+    }
 
     step = "insert";
     const { error } = await supabase.from("game_data_snapshots").insert({

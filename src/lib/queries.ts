@@ -1,8 +1,8 @@
 import { getGameSupabase } from "./supabase";
 
-// Supabase max is ~10,000 rows per request. Use a large page size
-// to reduce subrequest count (Cloudflare Workers limit: 50/invocation).
-const PAGE_SIZE = 10000;
+// Supabase caps responses at 1,000 rows regardless of what you request.
+// Keep PAGE_SIZE at 1,000 so pagination break logic works correctly.
+const PAGE_SIZE = 1000;
 
 /** Fetch all rows from the game server DB, paginating past the 1000-row default limit. */
 async function fetchAll<T>(
