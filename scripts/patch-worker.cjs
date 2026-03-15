@@ -13,13 +13,14 @@ if (code.includes("async scheduled(")) {
 }
 
 // The worker ends with `};` — replace it to add the scheduled handler
+// Only run the lightweight server-snapshot in the CF cron.
+// game-data-snapshot is too heavy (40k+ rows) — handled by GitHub Actions cron instead.
 code = code.trimEnd().replace(/};\s*$/, `    async scheduled(event, env, ctx) {
         const baseUrl = "http://localhost";
         const headers = { "Authorization": "Bearer " + env.CRON_SECRET };
-        ctx.waitUntil(Promise.all([
-            this.fetch(new Request(baseUrl + "/api/server-snapshot", { headers }), env, ctx),
-            this.fetch(new Request(baseUrl + "/api/game-data-snapshot", { headers }), env, ctx),
-        ]));
+        ctx.waitUntil(
+            this.fetch(new Request(baseUrl + "/api/server-snapshot", { headers }), env, ctx)
+        );
     },
 };
 `);
