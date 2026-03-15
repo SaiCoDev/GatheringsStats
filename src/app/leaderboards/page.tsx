@@ -19,6 +19,7 @@ export default function LeaderboardsPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [cachedAt, setCachedAt] = useState<number>(0);
   const [activeCategory, setActiveCategory] = useState<string>("all");
+  const [showAllBoards, setShowAllBoards] = useState(false);
 
   const fetchAll = useCallback(async (refresh = false) => {
     const qs = refresh ? "&refresh=1" : "";
@@ -104,6 +105,8 @@ export default function LeaderboardsPage() {
   const visibleCategories =
     activeCategory === "all" ? categoryNames : [activeCategory];
 
+  const INITIAL_BOARDS = 5;
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between">
@@ -122,7 +125,7 @@ export default function LeaderboardsPage() {
       {/* Category filter tabs */}
       <div className="flex flex-wrap gap-1">
         <button
-          onClick={() => setActiveCategory("all")}
+          onClick={() => { setActiveCategory("all"); setShowAllBoards(false); }}
           className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
             activeCategory === "all"
               ? "bg-amber-500/15 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.2)]"
@@ -134,7 +137,7 @@ export default function LeaderboardsPage() {
         {categoryNames.map((cat) => (
           <button
             key={cat}
-            onClick={() => setActiveCategory(cat)}
+            onClick={() => { setActiveCategory(cat); setShowAllBoards(false); }}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
               activeCategory === cat
                 ? "bg-amber-500/15 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.2)]"
@@ -147,23 +150,40 @@ export default function LeaderboardsPage() {
       </div>
 
       {/* Boards */}
-      {visibleCategories.map((cat) => (
-        <div key={cat}>
-          <h2 className="mb-4 text-xl font-semibold text-white">
-            {formatCategoryName(cat)}
-          </h2>
-          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-            {categories[cat].map((id) => (
-              <LeaderboardCard
-                key={id}
-                boardId={id}
-                data={boardData[id]}
-                onLoadMore={() => loadMore(id)}
-              />
-            ))}
+      {visibleCategories.map((cat) => {
+        const allBoardsInCat = categories[cat];
+        const visibleBoards = showAllBoards
+          ? allBoardsInCat
+          : allBoardsInCat.slice(0, INITIAL_BOARDS);
+        const hiddenCount = allBoardsInCat.length - visibleBoards.length;
+
+        return (
+          <div key={cat}>
+            <h2 className="mb-4 text-xl font-semibold text-white">
+              {formatCategoryName(cat)}
+            </h2>
+            <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+              {visibleBoards.map((id) => (
+                <LeaderboardCard
+                  key={id}
+                  boardId={id}
+                  data={boardData[id]}
+                  onLoadMore={() => loadMore(id)}
+                />
+              ))}
+            </div>
+            {hiddenCount > 0 && (
+              <button
+                onClick={() => setShowAllBoards(true)}
+                className="btn-enchanted mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-[#2d2640] bg-[#0a0a0f] py-2.5 text-sm font-medium text-[#9892a6] transition-all hover:border-amber-500/40 hover:text-amber-300"
+              >
+                <ChevronDown className="h-4 w-4" />
+                Show {hiddenCount} more leaderboard{hiddenCount !== 1 ? "s" : ""}
+              </button>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
 
       {boardIds.length === 0 && (
         <Card>

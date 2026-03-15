@@ -31,20 +31,26 @@ async function captureGameDataSnapshot() {
     const feedback = await getPlayerFeedback();
     step = "cycles";
     const cycles = await getDailyCycles();
-    // Fetch leaderboards with a single large query (top 5000 by score)
-    // to avoid blowing through Cloudflare's 50 subrequest limit.
-    // Full fetchAll would need 40+ paginated requests for 40k rows.
+    // Fetch leaderboards in pages of 1000 (Supabase max per request).
+    // 5 pages = 5000 rows = 5 subrequests, well within Cloudflare's limit.
     step = "leaderboards";
     const gameSupabase = getGameSupabase();
     let leaderboards: LeaderboardEntry[] = [];
     if (gameSupabase) {
-      const { data, error: lbErr } = await gameSupabase
-        .from("leaderboards")
-        .select("*")
-        .order("score", { ascending: false })
-        .limit(5000);
-      if (lbErr) throw new Error(`leaderboards: ${lbErr.message}`);
-      leaderboards = (data ?? []) as LeaderboardEntry[];
+      const LB_PAGE = 1000;
+      const LB_PAGES = 5;
+      for (let page = 0; page < LB_PAGES; page++) {
+        const from = page * LB_PAGE;
+        const { data, error: lbErr } = await gameSupabase
+          .from("leaderboards")
+          .select("*")
+          .order("score", { ascending: false })
+          .range(from, from + LB_PAGE - 1);
+        if (lbErr) throw new Error(`leaderboards page ${page}: ${lbErr.message}`);
+        if (!data || data.length === 0) break;
+        leaderboards.push(...(data as LeaderboardEntry[]));
+        if (data.length < LB_PAGE) break;
+      }
     }
 
     step = "insert";
