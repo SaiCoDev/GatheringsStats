@@ -3,8 +3,9 @@
 const fs = require("fs");
 
 let cfg = fs.readFileSync("wrangler.jsonc", "utf8");
-// Strip JSONC comments
-cfg = cfg.replace(/\/\/[^\n]*/g, "");
+// Strip JSONC comments (only // at start of line or after whitespace, not in URLs)
+cfg = cfg.replace(/^\s*\/\/.*$/gm, "");
+cfg = cfg.replace(/,\s*\/\/.*$/gm, ",");
 cfg = cfg.replace(/\/\*[\s\S]*?\*\//g, "");
 const obj = JSON.parse(cfg);
 
