@@ -16,11 +16,6 @@ jobs:
 
       - run: npm ci
 
-      - name: Build
-        run: npx opennextjs-cloudflare build
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-
       - name: Inject secrets into wrangler config
         run: node .github/inject-secrets.cjs
         env:
@@ -29,8 +24,13 @@ jobs:
           GATHERINGS_API_KEY: ${{ secrets.GATHERINGS_API_KEY }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
 
+      - name: Build
+        run: npx opennextjs-cloudflare build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+
       - name: Deploy
-        run: npx wrangler deploy
+        run: npx opennextjs-cloudflare deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
