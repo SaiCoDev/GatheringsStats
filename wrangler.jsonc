@@ -5,7 +5,9 @@
   "compatibility_date": "2026-03-14",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "vars": {
-    "NEXT_PUBLIC_SUPABASE_URL": "https://myfughjourlzfsqkqczh.supabase.co"
+    "NEXT_PUBLIC_SUPABASE_URL": "https://myfughjourlzfsqkqczh.supabase.co",
+    "GAME_SUPABASE_URL": "https://ajegfbyyyyjkiataheyw.supabase.co",
+    "GATHERINGS_API_BASE_URL": "https://gatherings.franchise.minecraft-services.net/api/v2.0"
   },
   // Cron trigger: capture server snapshot every minute
   "triggers": {
