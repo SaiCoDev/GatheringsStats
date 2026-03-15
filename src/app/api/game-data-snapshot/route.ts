@@ -12,46 +12,52 @@ import {
 export const dynamic = "force-dynamic";
 
 async function captureGameDataSnapshot() {
-  const supabase = getSupabase();
-  if (!supabase) {
-    return { error: "Supabase not configured", status: 503 };
+  try {
+    const supabase = getSupabase();
+    if (!supabase) {
+      return { error: "Supabase not configured", status: 503 };
+    }
+
+    const [players, market, ratings, feedback, cycles, leaderboards] = await Promise.all([
+      getPlayerMetrics(),
+      getMarketListings(),
+      getFeedbackRatings(),
+      getPlayerFeedback(),
+      getDailyCycles(),
+      getLeaderboards(),
+    ]);
+
+    const { error } = await supabase.from("game_data_snapshots").insert({
+      players,
+      market,
+      ratings,
+      feedback,
+      cycles,
+      leaderboards,
+    });
+
+    if (error) {
+      return { error: error.message, status: 500 };
+    }
+
+    return {
+      ok: true,
+      captured_at: new Date().toISOString(),
+      counts: {
+        players: players.length,
+        market: market.length,
+        ratings: ratings.length,
+        feedback: feedback.length,
+        cycles: cycles.length,
+        leaderboards: leaderboards.length,
+      },
+      status: 200,
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("captureGameDataSnapshot error:", message);
+    return { error: message, status: 500 };
   }
-
-  const [players, market, ratings, feedback, cycles, leaderboards] = await Promise.all([
-    getPlayerMetrics(),
-    getMarketListings(),
-    getFeedbackRatings(),
-    getPlayerFeedback(),
-    getDailyCycles(),
-    getLeaderboards(),
-  ]);
-
-  const { error } = await supabase.from("game_data_snapshots").insert({
-    players,
-    market,
-    ratings,
-    feedback,
-    cycles,
-    leaderboards,
-  });
-
-  if (error) {
-    return { error: error.message, status: 500 };
-  }
-
-  return {
-    ok: true,
-    captured_at: new Date().toISOString(),
-    counts: {
-      players: players.length,
-      market: market.length,
-      ratings: ratings.length,
-      feedback: feedback.length,
-      cycles: cycles.length,
-      leaderboards: leaderboards.length,
-    },
-    status: 200,
-  };
 }
 
 // GET — called by cron
