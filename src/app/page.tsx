@@ -6,7 +6,7 @@ import { DataStatus } from "@/components/DataStatus";
 import { Users, Clock, TrendingUp, Coins, ShoppingCart, Star, Bug, MessageCircle, Calendar, Pickaxe } from "lucide-react";
 
 export default function DashboardPage() {
-  const { data, loading, refreshing, refresh } = useGameData();
+  const { data, loading, refreshing, refresh } = useGameData(["players", "market", "ratings", "feedback", "cycles"]);
 
   if (loading) return <Loading />;
   if (!data) return null;

@@ -7,7 +7,7 @@ import { FeedbackTabs } from "./FeedbackTabs";
 import { MessageSquare, Star, BarChart3, Bug, MessageCircle, Users } from "lucide-react";
 
 export default function FeedbackPage() {
-  const { data, loading, refreshing, refresh } = useGameData();
+  const { data, loading, refreshing, refresh } = useGameData(["ratings", "feedback"]);
 
   if (loading) return <Loading />;
   if (!data) return null;

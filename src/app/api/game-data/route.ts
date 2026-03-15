@@ -19,6 +19,19 @@ export async function GET(req: NextRequest) {
     }
 
     const data = await getGameData(refresh);
+
+    // Optional field selection: ?fields=ratings,feedback,cycles
+    const fieldsParam = req.nextUrl.searchParams.get("fields");
+    if (fieldsParam) {
+      const allowed = ["players", "market", "ratings", "feedback", "cycles", "leaderboards"] as const;
+      const requested = fieldsParam.split(",").filter((f) => allowed.includes(f as typeof allowed[number]));
+      const partial: Record<string, unknown> = { cachedAt: data.cachedAt };
+      for (const field of requested) {
+        partial[field] = data[field as keyof typeof data];
+      }
+      return NextResponse.json(partial);
+    }
+
     return NextResponse.json(data);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to fetch game data";

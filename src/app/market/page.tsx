@@ -6,7 +6,7 @@ import { DataStatus } from "@/components/DataStatus";
 import { Store, Coins, TrendingUp, Users, Tag, Clock } from "lucide-react";
 
 export default function MarketPage() {
-  const { data, loading, refreshing, refresh } = useGameData();
+  const { data, loading, refreshing, refresh } = useGameData(["market"]);
 
   if (loading) return <Loading />;
   if (!data) return null;
