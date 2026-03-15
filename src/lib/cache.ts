@@ -1,17 +1,11 @@
 import { supabase } from "./supabase";
-import {
-  getPlayerMetrics,
-  getMarketListings,
-  getFeedbackRatings,
-  getPlayerFeedback,
-  getDailyCycles,
-  getLeaderboards,
-  type PlayerMetric,
-  type MarketListing,
-  type FeedbackRating,
-  type PlayerFeedback,
-  type DailyCycle,
-  type LeaderboardEntry,
+import type {
+  PlayerMetric,
+  MarketListing,
+  FeedbackRating,
+  PlayerFeedback,
+  DailyCycle,
+  LeaderboardEntry,
 } from "./queries";
 
 export interface GameData {
@@ -24,16 +18,26 @@ export interface GameData {
   cachedAt: number;
 }
 
+const EMPTY: GameData = {
+  players: [],
+  market: [],
+  ratings: [],
+  feedback: [],
+  cycles: [],
+  leaderboards: [],
+  cachedAt: 0,
+};
+
 let cached: GameData | null = null;
 
 /**
  * Fetch the latest game data snapshot from the website DB.
- * Falls back to querying the game server directly if no snapshot exists.
+ * Never queries the game server directly — that only happens via the cron
+ * or the "Sync now" button (/api/game-data-snapshot).
  */
 export async function getGameData(forceRefresh = false): Promise<GameData> {
   if (cached && !forceRefresh) return cached;
 
-  // Try reading from the snapshot table first
   if (supabase) {
     const { data, error } = await supabase
       .from("game_data_snapshots")
@@ -56,17 +60,5 @@ export async function getGameData(forceRefresh = false): Promise<GameData> {
     }
   }
 
-  // Fallback: query game server directly (before snapshot table exists)
-  const [players, market, ratings, feedback, cycles, leaderboards] =
-    await Promise.all([
-      getPlayerMetrics(),
-      getMarketListings(),
-      getFeedbackRatings(),
-      getPlayerFeedback(),
-      getDailyCycles(),
-      getLeaderboards(),
-    ]);
-
-  cached = { players, market, ratings, feedback, cycles, leaderboards, cachedAt: Date.now() };
-  return cached;
+  return EMPTY;
 }
