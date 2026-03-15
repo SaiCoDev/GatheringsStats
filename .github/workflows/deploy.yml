@@ -22,7 +22,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
 
       - name: Inject secrets into wrangler config
-        run: node .github/inject-secrets.js
+        run: node .github/inject-secrets.cjs
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           GAME_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.GAME_SUPABASE_SERVICE_ROLE_KEY }}
