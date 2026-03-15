@@ -26,3 +26,15 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Set Worker secrets
+        run: |
+          echo "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" | npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+          echo "${{ secrets.GAME_SUPABASE_URL }}" | npx wrangler secret put GAME_SUPABASE_URL
+          echo "${{ secrets.GAME_SUPABASE_SERVICE_ROLE_KEY }}" | npx wrangler secret put GAME_SUPABASE_SERVICE_ROLE_KEY
+          echo "${{ secrets.GATHERINGS_API_KEY }}" | npx wrangler secret put GATHERINGS_API_KEY
+          echo "${{ secrets.GATHERINGS_API_BASE_URL }}" | npx wrangler secret put GATHERINGS_API_BASE_URL
+          echo "${{ secrets.CRON_SECRET }}" | npx wrangler secret put CRON_SECRET
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
