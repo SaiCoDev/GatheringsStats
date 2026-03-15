@@ -821,10 +821,11 @@ const STATUS_ORDER: Record<string, number> = { Ready: 0, Active: 1, StandingBy: 
 
 function LiveServerInstances({ servers }: { servers: ServerInstance[] }) {
   const [expanded, setExpanded] = useState(false);
-  const [sortKey, setSortKey] = useState<SortKey>("status");
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [sortKey, setSortKey] = useState<SortKey>("players");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [pingData, setPingData] = useState<Record<string, { players: number; maxPlayers: number }>>({});
   const [pinging, setPinging] = useState(false);
+  const hasFetched = useRef(false);
 
   const pingServers = useCallback(async () => {
     setPinging(true);
@@ -844,6 +845,14 @@ function LiveServerInstances({ servers }: { servers: ServerInstance[] }) {
     } catch { /* ignore */ }
     setPinging(false);
   }, []);
+
+  // Auto-fetch pings when expanded for the first time
+  useEffect(() => {
+    if (expanded && !hasFetched.current && servers.length > 0) {
+      hasFetched.current = true;
+      pingServers();
+    }
+  }, [expanded, servers.length, pingServers]);
 
   const handleSort = useCallback((key: SortKey) => {
     setSortDir((d) => (sortKey === key ? (d === "asc" ? "desc" : "asc") : "asc"));
@@ -972,32 +981,29 @@ function LiveServerInstances({ servers }: { servers: ServerInstance[] }) {
                 </Card>
               </div>
 
-              {/* Ping button + player totals */}
+              {/* Player totals */}
               <div className="flex items-center gap-3">
-                <button
-                  onClick={pingServers}
-                  disabled={pinging}
-                  className="flex items-center gap-1.5 rounded-lg border border-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-400 transition-colors hover:border-amber-500/50 hover:text-amber-300 disabled:opacity-40"
-                >
-                  {pinging ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Users className="h-3.5 w-3.5" />}
-                  {pinging ? "Pinging..." : hasPingData ? "Re-ping Servers" : "Ping Player Counts"}
-                </button>
-                {hasPingData && (
+                {pinging && (
+                  <span className="flex items-center gap-1.5 text-xs text-zinc-500">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-400" /> Pinging servers...
+                  </span>
+                )}
+                {hasPingData && !pinging && (
                   <span className="text-sm text-zinc-400">
                     <span className="font-semibold text-emerald-400">{totalPingPlayers}</span> players across{" "}
                     <span className="font-semibold text-blue-400">{totalPingMax}</span> slots
                     {totalPingMax > 0 && (
                       <> · <span className="font-semibold text-amber-400">{Math.round((totalPingPlayers / totalPingMax) * 100)}%</span> fill</>
                     )}
+                    <button
+                      onClick={() => { hasFetched.current = false; pingServers(); }}
+                      className="ml-3 text-xs text-zinc-600 hover:text-amber-300"
+                    >
+                      refresh
+                    </button>
                   </span>
                 )}
               </div>
-
-              {otherCount > 0 && (
-                <div className="text-xs text-zinc-500">
-                  {otherCount} server{otherCount !== 1 && "s"} in other states (Propping, Active, etc.)
-                </div>
-              )}
 
               {/* Sortable table */}
               <Card>
@@ -1046,7 +1052,7 @@ function LiveServerInstances({ servers }: { servers: ServerInstance[] }) {
                                 </div>
                               </div>
                             ) : (
-                              <span className="text-xs text-zinc-600">{hasPingData ? "—" : "click ping"}</span>
+                              <span className="text-xs text-zinc-600">{pinging ? <Loader2 className="h-3 w-3 animate-spin text-zinc-600" /> : "—"}</span>
                             )}
                           </td>
                           <td className="py-2 pr-4 text-zinc-300">{s.world || "—"}</td>

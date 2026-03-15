@@ -7,69 +7,26 @@ import {
 
 const EXPERIENCE_ID = "81ac183c-1d09-44a2-b0b5-78abaf8c9877";
 
-/* ── Bedrock UDP ping ─────────────────────────────────────────────── */
+/* ── Bedrock server ping via public API ────────────────────────────── */
 
 interface BedrockPingResult {
   online: boolean;
   players?: number;
   maxPlayers?: number;
   version?: string;
-  motd?: string;
-  gameMode?: string;
 }
 
-async function pingBedrockServer(ip: string, port: number, timeoutMs = 3000): Promise<BedrockPingResult> {
+async function pingBedrockServer(ip: string, port: number): Promise<BedrockPingResult> {
   try {
-    // Dynamic import — dgram only available in Node.js, not Cloudflare Workers
-    const dgram = await import("dgram").catch(() => null);
-    if (!dgram) return { online: false };
-
-    return new Promise((resolve) => {
-      const client = dgram.createSocket("udp4");
-      const timer = setTimeout(() => {
-        client.close();
-        resolve({ online: false });
-      }, timeoutMs);
-
-      client.on("message", (msg: Buffer) => {
-        clearTimeout(timer);
-        try {
-          if (msg[0] === 0x1c) {
-            const offset = 1 + 8 + 8 + 16 + 2;
-            const motd = msg.slice(offset).toString("utf8");
-            const parts = motd.split(";");
-            // Format: Edition;MOTD;Protocol;Version;Players;MaxPlayers;ServerID;SubMOTD;GameMode;...
-            resolve({
-              online: true,
-              players: parseInt(parts[4]) || 0,
-              maxPlayers: parseInt(parts[5]) || 0,
-              version: parts[3] || undefined,
-              motd: parts[1] || undefined,
-              gameMode: parts[8] || undefined,
-            });
-          } else {
-            resolve({ online: true });
-          }
-        } catch {
-          resolve({ online: true });
-        }
-        client.close();
-      });
-
-      client.on("error", () => {
-        clearTimeout(timer);
-        client.close();
-        resolve({ online: false });
-      });
-
-      // Build Unconnected Ping packet
-      const buf = Buffer.alloc(33);
-      buf[0] = 0x01;
-      buf.writeBigInt64BE(BigInt(Date.now()), 1);
-      Buffer.from("00ffff00fefefefefdfdfdfd12345678", "hex").copy(buf, 9);
-      buf.writeBigInt64BE(BigInt(0), 25);
-      client.send(buf, port, ip);
-    });
+    const res = await fetch(`https://api.mcsrvstat.us/bedrock/3/${ip}:${port}`, { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return { online: false };
+    const json = await res.json();
+    return {
+      online: !!json.online,
+      players: json.players?.online ?? 0,
+      maxPlayers: json.players?.max ?? 0,
+      version: json.version ?? undefined,
+    };
   } catch {
     return { online: false };
   }
@@ -150,7 +107,6 @@ async function handleServers() {
     players?: number;
     maxPlayers?: number;
     version?: string;
-    gameMode?: string;
     pingOnline?: boolean;
   }> = [];
 
@@ -170,18 +126,30 @@ async function handleServers() {
     }
   }
 
-  // Ping all servers in parallel for player counts
+  // Ping all servers via public API for player counts
+  // Deduplicate by ip:port to avoid hitting the API multiple times for same server
+  const uniqueEndpoints = new Map<string, { ip: string; port: number }>();
+  for (const srv of allServers) {
+    const key = `${srv.ipV4Address}:${srv.gameplayPort}`;
+    if (!uniqueEndpoints.has(key)) uniqueEndpoints.set(key, { ip: srv.ipV4Address, port: srv.gameplayPort });
+  }
   const pingResults = await Promise.allSettled(
-    allServers.map((srv) => pingBedrockServer(srv.ipV4Address, srv.gameplayPort, 3000))
+    [...uniqueEndpoints.values()].map((ep) => pingBedrockServer(ep.ip, ep.port))
   );
+  const pingMap = new Map<string, BedrockPingResult>();
+  const endpoints = [...uniqueEndpoints.keys()];
+  for (let i = 0; i < endpoints.length; i++) {
+    const pr = pingResults[i];
+    if (pr.status === "fulfilled") pingMap.set(endpoints[i], pr.value);
+  }
 
   for (let i = 0; i < allServers.length; i++) {
-    const ping = pingResults[i];
-    if (ping.status === "fulfilled" && ping.value.online) {
-      allServers[i].players = ping.value.players;
-      allServers[i].maxPlayers = ping.value.maxPlayers;
-      allServers[i].version = ping.value.version;
-      allServers[i].gameMode = ping.value.gameMode;
+    const key = `${allServers[i].ipV4Address}:${allServers[i].gameplayPort}`;
+    const ping = pingMap.get(key);
+    if (ping?.online) {
+      allServers[i].players = ping.players;
+      allServers[i].maxPlayers = ping.maxPlayers;
+      allServers[i].version = ping.version;
       allServers[i].pingOnline = true;
     } else {
       allServers[i].pingOnline = false;
