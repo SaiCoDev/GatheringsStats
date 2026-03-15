@@ -12,6 +12,7 @@ import {
 export const dynamic = "force-dynamic";
 
 async function captureGameDataSnapshot() {
+  let step = "init";
   try {
     const supabase = getSupabase();
     if (!supabase) {
@@ -19,13 +20,20 @@ async function captureGameDataSnapshot() {
     }
 
     // Fetch sequentially to stay under Cloudflare's 50 subrequest limit
+    step = "players";
     const players = await getPlayerMetrics();
+    step = "market";
     const market = await getMarketListings();
+    step = "ratings";
     const ratings = await getFeedbackRatings();
+    step = "feedback";
     const feedback = await getPlayerFeedback();
+    step = "cycles";
     const cycles = await getDailyCycles();
+    step = "leaderboards";
     const leaderboards = await getLeaderboards();
 
+    step = "insert";
     const { error } = await supabase.from("game_data_snapshots").insert({
       players,
       market,
@@ -36,7 +44,7 @@ async function captureGameDataSnapshot() {
     });
 
     if (error) {
-      return { error: error.message, status: 500 };
+      return { error: `insert: ${error.message}`, status: 500 };
     }
 
     return {
@@ -54,8 +62,8 @@ async function captureGameDataSnapshot() {
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error("captureGameDataSnapshot error:", message);
-    return { error: message, status: 500 };
+    console.error("captureGameDataSnapshot error at step:", step, message);
+    return { error: `[${step}] ${message}`, status: 500 };
   }
 }
 
