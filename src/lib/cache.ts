@@ -27,7 +27,10 @@ const ALL_FIELDS: GameDataField[] = ["players", "market", "ratings", "feedback",
  * Only selects the requested columns from Supabase to keep the payload small.
  */
 export async function getGameData(fields?: GameDataField[]): Promise<GameData> {
-  if (!supabase) return emptyData();
+  if (!supabase) {
+    console.error("[game-data] supabase client is null");
+    return emptyData();
+  }
 
   const selected = fields ?? ALL_FIELDS;
   const columns = ["captured_at", ...selected].join(",");
@@ -39,7 +42,10 @@ export async function getGameData(fields?: GameDataField[]): Promise<GameData> {
     .limit(1)
     .single();
 
-  if (error || !data) return emptyData();
+  if (error || !data) {
+    console.error("[game-data] query failed:", error?.message ?? "no data");
+    return emptyData();
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const row = data as any;
