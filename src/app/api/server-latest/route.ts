@@ -11,7 +11,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("server_snapshots")
-    .select("id, captured_at, total_servers, total_players, max_capacity, entries")
+    .select("id, captured_at, total_servers, total_players, max_capacity, entries, server_instances")
     .order("captured_at", { ascending: false })
     .limit(1)
     .single();

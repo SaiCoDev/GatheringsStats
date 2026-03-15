@@ -4,6 +4,7 @@ import {
   ServiceResponse,
   Experience,
   ServerAllocationStateResponse,
+  GetServersResponse,
 } from "@/lib/types";
 
 const ALL_REGIONS = [
@@ -122,11 +123,62 @@ async function captureServerSnapshot() {
     });
   }
 
+  // Fetch individual server instances for each active scenario
+  const serverInstanceRequests: { experienceId: string; worldId: string; worldName: string; targetId: string; scenarioId: string; mode: string }[] = [];
+  for (const exp of experiences) {
+    for (const world of exp.worlds ?? []) {
+      for (const target of world.targets ?? []) {
+        if (!target.isEnabled) continue;
+        const active: { id: string; mode: string }[] = [];
+        if (target.activePublicScenarioId) active.push({ id: target.activePublicScenarioId, mode: "Public" });
+        if (target.activePrivateScenarioId) active.push({ id: target.activePrivateScenarioId, mode: "Private" });
+        if (target.activeDevScenarioId) active.push({ id: target.activeDevScenarioId, mode: "Dev" });
+        if (target.activeQaScenarioId) active.push({ id: target.activeQaScenarioId, mode: "QA" });
+        for (const { id, mode } of active) {
+          serverInstanceRequests.push({
+            experienceId: exp.experienceId,
+            worldId: world.worldId,
+            worldName: world.name,
+            targetId: target.targetId,
+            scenarioId: id,
+            mode,
+          });
+        }
+      }
+    }
+  }
+
+  const instanceResults = await Promise.allSettled(
+    serverInstanceRequests.map(async (r) => {
+      const path = `/experiences/${r.experienceId}/worlds/${r.worldId}/targets/${r.targetId}/scenarios/${r.scenarioId}/servers/${r.mode}`;
+      const data = await gatheringsApiFresh<{ result: GetServersResponse }>(path);
+      return { ...r, servers: data.result?.servers ?? [] };
+    })
+  );
+
+  const serverInstances: { serverId: string; region: string; status: string; ipV4Address: string; gameplayPort: number; serverPlatform?: string; mode: string; world: string }[] = [];
+  for (const ir of instanceResults) {
+    if (ir.status !== "fulfilled") continue;
+    for (const srv of ir.value.servers) {
+      serverInstances.push({
+        serverId: srv.serverId,
+        region: srv.region,
+        status: srv.status,
+        ipV4Address: srv.ipV4Address,
+        gameplayPort: srv.gameplayPort,
+        serverPlatform: srv.serverPlatform,
+        mode: ir.value.mode,
+        world: ir.value.worldName,
+      });
+    }
+  }
+
   const { error } = await supabase.from("server_snapshots").insert({
     total_servers: totalServers,
     total_players: totalPlayers,
     max_capacity: maxCapacity,
     entries,
+    server_instances: serverInstances,
   });
 
   if (error) {
