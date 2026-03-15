@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Card } from "@/components/Card";
-import { RefreshButton } from "@/components/RefreshButton";
+import { DataStatus } from "@/components/DataStatus";
 import { Trophy, ChevronDown, Crown, Globe, Mountain } from "lucide-react";
 import type { LeaderboardEntry } from "@/lib/queries";
 
@@ -92,9 +92,11 @@ export default function LeaderboardsPage() {
     }));
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setRefreshing(true);
     setLoading(true);
+    // Trigger a fresh snapshot from the game server
+    await fetch("/api/game-data-snapshot", { method: "POST" });
     fetchBoardList(true);
   };
 
@@ -145,7 +147,7 @@ export default function LeaderboardsPage() {
             {boards.length} boards &middot; {totalEntries.toLocaleString()} total entries
           </p>
         </div>
-        <RefreshButton onClick={handleRefresh} refreshing={refreshing} cachedAt={cachedAt || undefined} />
+        <DataStatus onRefresh={handleRefresh} refreshing={refreshing} cachedAt={cachedAt || undefined} />
       </div>
 
       {/* Category filter tabs */}

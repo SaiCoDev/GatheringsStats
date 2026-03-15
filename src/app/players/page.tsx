@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Card } from "@/components/Card";
-import { RefreshButton } from "@/components/RefreshButton";
+import { DataStatus } from "@/components/DataStatus";
 import { Users, Search, Filter, ChevronDown } from "lucide-react";
 import type { PlayerMetric } from "@/lib/queries";
 
@@ -61,6 +61,8 @@ export default function PlayersPage() {
   const refresh = useCallback(async () => {
     setRefreshing(true);
     try {
+      // Trigger a fresh snapshot from the game server
+      await fetch("/api/game-data-snapshot", { method: "POST" });
       const next = await fetchPlayers(0, true);
       setData(next);
     } finally {
@@ -153,7 +155,7 @@ export default function PlayersPage() {
             Initial load is capped at {limit.toLocaleString()} players.
           </p>
         </div>
-        <RefreshButton onClick={refresh} refreshing={refreshing} cachedAt={cachedAt} />
+        <DataStatus onRefresh={refresh} refreshing={refreshing} cachedAt={cachedAt} />
       </div>
 
       {/* Filters */}

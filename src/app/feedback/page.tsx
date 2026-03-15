@@ -2,7 +2,7 @@
 
 import { useGameData } from "@/lib/useGameData";
 import { Card, StatCard } from "@/components/Card";
-import { RefreshButton } from "@/components/RefreshButton";
+import { DataStatus } from "@/components/DataStatus";
 import { FeedbackTabs } from "./FeedbackTabs";
 import { MessageSquare, Star, BarChart3, Bug, MessageCircle, Users } from "lucide-react";
 
@@ -55,7 +55,7 @@ export default function FeedbackPage() {
             {feedback.length} messages from {uniqueWriters} players
           </p>
         </div>
-        <RefreshButton onClick={refresh} refreshing={refreshing} cachedAt={data.cachedAt} />
+        <DataStatus onRefresh={refresh} refreshing={refreshing} cachedAt={data.cachedAt} />
       </div>
 
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">

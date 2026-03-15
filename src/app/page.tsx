@@ -2,7 +2,7 @@
 
 import { useGameData } from "@/lib/useGameData";
 import { StatCard, Card } from "@/components/Card";
-import { RefreshButton } from "@/components/RefreshButton";
+import { DataStatus } from "@/components/DataStatus";
 import { Users, Clock, TrendingUp, Coins, ShoppingCart, Star, Bug, MessageCircle, Calendar, Pickaxe } from "lucide-react";
 
 export default function DashboardPage() {
@@ -52,7 +52,7 @@ export default function DashboardPage() {
             {dateRange ?? "Loading..."}
           </p>
         </div>
-        <RefreshButton onClick={refresh} refreshing={refreshing} cachedAt={data.cachedAt} />
+        <DataStatus onRefresh={refresh} refreshing={refreshing} cachedAt={data.cachedAt} />
       </div>
 
       {/* Player & game stats with activity icons */}

@@ -1,0 +1,24 @@
+name: Server Snapshot Cron
+
+on:
+  schedule:
+    # Every 1 minute (GitHub may run ~60-90s apart)
+    - cron: "* * * * *"
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Capture server snapshot
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -X GET \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://treasurestats.enchanted.dev/api/server-snapshot")
+          http_code=$(echo "$response" | tail -1)
+          body=$(echo "$response" | head -n -1)
+          echo "$body"
+          if [ "$http_code" -ne 200 ]; then
+            echo "Failed with status $http_code"
+            exit 1
+          fi

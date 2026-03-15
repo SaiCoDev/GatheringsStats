@@ -1,18 +1,18 @@
-import { supabase } from "./supabase";
+import { gameSupabase } from "./supabase";
 
 const PAGE_SIZE = 1000;
 
-/** Fetch all rows from a table, paginating past the 1000-row default limit. */
+/** Fetch all rows from the game server DB, paginating past the 1000-row default limit. */
 async function fetchAll<T>(
   table: string,
   opts?: { order?: { column: string; ascending: boolean } }
 ): Promise<T[]> {
-  if (!supabase) return [];
+  if (!gameSupabase) return [];
   const results: T[] = [];
   let from = 0;
 
   while (true) {
-    let query = supabase.from(table).select("*").range(from, from + PAGE_SIZE - 1);
+    let query = gameSupabase.from(table).select("*").range(from, from + PAGE_SIZE - 1);
     if (opts?.order) query = query.order(opts.order.column, { ascending: opts.order.ascending });
     const { data, error } = await query;
     if (error) throw new Error(error.message);
@@ -62,8 +62,8 @@ export async function getPlayerMetrics() {
 
 /** Fetch a limited number of player metric rows for the players page. */
 export async function getPlayerMetricsLimited(limit: number, offset = 0) {
-  if (!supabase) return { players: [], total: 0 };
-  const { data, error, count } = await supabase
+  if (!gameSupabase) return { players: [], total: 0 };
+  const { data, error, count } = await gameSupabase
     .from("player_metrics")
     .select("*", { count: "exact" })
     .order("gameplay_time", { ascending: false })
@@ -78,16 +78,16 @@ export async function getPlayerMetricsLimited(limit: number, offset = 0) {
 }
 
 export async function getPlayerNamesByPfids(playerPfids: string[]) {
-  if (!supabase || playerPfids.length === 0) return new Map<string, string>();
+  if (!gameSupabase || playerPfids.length === 0) return new Map<string, string>();
 
   const uniquePfids = [...new Set(playerPfids)];
   const [leaderboardsResult, feedbackResult] = await Promise.all([
-    supabase
+    gameSupabase
       .from("leaderboards")
       .select("playerPfid, playerName, updatedTimestamp")
       .in("playerPfid", uniquePfids)
       .order("updatedTimestamp", { ascending: false }),
-    supabase
+    gameSupabase
       .from("player_feedback")
       .select("player_pfid, player_name")
       .in("player_pfid", uniquePfids),
@@ -156,8 +156,8 @@ export const fetchAllLeaderboards = getLeaderboards;
 
 /** Fetch a limited number of leaderboard rows (for initial page load). */
 export async function getLeaderboardsLimited(limit: number) {
-  if (!supabase) return [];
-  const { data, error } = await supabase
+  if (!gameSupabase) return [];
+  const { data, error } = await gameSupabase
     .from("leaderboards")
     .select("*")
     .order("score", { ascending: false })

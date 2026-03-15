@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
-import { fetchAllLeaderboards } from "@/lib/queries";
+import { getGameData } from "@/lib/cache";
 import { allowRefresh, cooldownRemaining } from "@/lib/rate-limit";
 import type { LeaderboardEntry } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
-// In-memory cache: all leaderboard entries grouped by board
-let cachedBoards: Record<string, LeaderboardEntry[]> | null = null;
+export async function GET(req: NextRequest) {
+  const wantsRefresh = req.nextUrl.searchParams.get("refresh") === "1";
+  const refresh = wantsRefresh && allowRefresh("leaderboards");
+  const action = req.nextUrl.searchParams.get("action");
 
-async function ensureCache(forceRefresh = false) {
-  if (cachedBoards && !forceRefresh) return cachedBoards;
+  const gameData = await getGameData(refresh);
+  const all = gameData.leaderboards;
 
-  const all = await fetchAllLeaderboards();
-
+  // Group by leaderboardId
   const grouped: Record<string, LeaderboardEntry[]> = {};
   for (const e of all) {
     (grouped[e.leaderboardId] ??= []).push(e);
@@ -21,19 +21,6 @@ async function ensureCache(forceRefresh = false) {
   for (const key of Object.keys(grouped)) {
     grouped[key].sort((a, b) => b.score - a.score);
   }
-
-  cachedBoards = grouped;
-  return cachedBoards;
-}
-
-export async function GET(req: NextRequest) {
-  if (!supabase) return NextResponse.json({ entries: [], total: 0, boards: [] });
-
-  const wantsRefresh = req.nextUrl.searchParams.get("refresh") === "1";
-  const refresh = wantsRefresh && allowRefresh("leaderboards");
-  const action = req.nextUrl.searchParams.get("action");
-
-  const grouped = await ensureCache(refresh);
 
   const rateLimitInfo = wantsRefresh && !refresh
     ? { rateLimited: true, cooldown: cooldownRemaining("leaderboards") }
@@ -60,10 +47,10 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  const all = Object.values(grouped).flat();
+  const flat = Object.values(grouped).flat();
   return NextResponse.json({
-    entries: all.slice(offset, offset + limit),
-    total: all.length,
+    entries: flat.slice(offset, offset + limit),
+    total: flat.length,
     ...rateLimitInfo,
   });
 }

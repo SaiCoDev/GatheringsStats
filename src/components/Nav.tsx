@@ -3,13 +3,14 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Store, Trophy, MessageSquare } from "lucide-react";
+import { LayoutDashboard, Users, Store, Trophy, MessageSquare, Server } from "lucide-react";
 
 const links = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/players", label: "Players", icon: Users },
   { href: "/market", label: "Market", icon: Store },
   { href: "/leaderboards", label: "Leaderboards", icon: Trophy },
+  { href: "/servers", label: "Servers", icon: Server },
   { href: "/feedback", label: "Feedback", icon: MessageSquare },
 ];
 

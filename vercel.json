@@ -3,6 +3,14 @@
     {
       "path": "/api/snapshot",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/server-snapshot",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/game-data-snapshot",
+      "schedule": "* * * * *"
     }
   ]
 }

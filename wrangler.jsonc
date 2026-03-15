@@ -5,7 +5,11 @@
   "compatibility_date": "2026-03-14",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "vars": {
-    "NEXT_PUBLIC_SUPABASE_URL": "https://ajegfbyyyyjkiataheyw.supabase.co"
+    "NEXT_PUBLIC_SUPABASE_URL": "https://myfughjourlzfsqkqczh.supabase.co"
+  },
+  // Cron trigger: capture server snapshot every minute
+  "triggers": {
+    "crons": ["* * * * *"]
   },
   "assets": {
     "directory": ".open-next/assets",
