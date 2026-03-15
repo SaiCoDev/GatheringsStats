@@ -21,22 +21,8 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
 
-      - name: Inject runtime vars into wrangler config
-        run: |
-          node -e "
-            const fs = require('fs');
-            let cfg = fs.readFileSync('wrangler.jsonc', 'utf8');
-            // Remove JSON comments for parsing
-            const clean = cfg.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
-            const obj = JSON.parse(clean);
-            Object.assign(obj.vars, {
-              SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
-              GAME_SUPABASE_SERVICE_ROLE_KEY: process.env.GAME_SUPABASE_SERVICE_ROLE_KEY,
-              GATHERINGS_API_KEY: process.env.GATHERINGS_API_KEY,
-              CRON_SECRET: process.env.CRON_SECRET,
-            });
-            fs.writeFileSync('wrangler.jsonc', JSON.stringify(obj, null, 2));
-          "
+      - name: Inject secrets into wrangler config
+        run: node .github/inject-secrets.js
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           GAME_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.GAME_SUPABASE_SERVICE_ROLE_KEY }}
