@@ -18,14 +18,13 @@ async function captureGameDataSnapshot() {
       return { error: "Supabase not configured", status: 503 };
     }
 
-    const [players, market, ratings, feedback, cycles, leaderboards] = await Promise.all([
-      getPlayerMetrics(),
-      getMarketListings(),
-      getFeedbackRatings(),
-      getPlayerFeedback(),
-      getDailyCycles(),
-      getLeaderboards(),
-    ]);
+    // Fetch sequentially to stay under Cloudflare's 50 subrequest limit
+    const players = await getPlayerMetrics();
+    const market = await getMarketListings();
+    const ratings = await getFeedbackRatings();
+    const feedback = await getPlayerFeedback();
+    const cycles = await getDailyCycles();
+    const leaderboards = await getLeaderboards();
 
     const { error } = await supabase.from("game_data_snapshots").insert({
       players,
