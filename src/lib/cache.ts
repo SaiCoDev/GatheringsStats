@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { getSupabase } from "./supabase";
 import type {
   PlayerMetric,
   MarketListing,
@@ -27,6 +27,7 @@ const ALL_FIELDS: GameDataField[] = ["players", "market", "ratings", "feedback",
  * Only selects the requested columns from Supabase to keep the payload small.
  */
 export async function getGameData(fields?: GameDataField[]): Promise<GameData> {
+  const supabase = getSupabase();
   if (!supabase) {
     console.error("[game-data] supabase client is null");
     return emptyData();

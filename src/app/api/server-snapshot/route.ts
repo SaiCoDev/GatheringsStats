@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import {
   ServiceResponse,
   Experience,
   ServerAllocationStateResponse,
 } from "@/lib/types";
-
-const API_BASE_URL = process.env.GATHERINGS_API_BASE_URL!;
-const API_KEY = process.env.GATHERINGS_API_KEY!;
 
 const ALL_REGIONS = [
   "eastus", "eastus2", "westus", "westeurope", "northeurope",
@@ -26,6 +23,8 @@ interface AllocationEntry {
 }
 
 async function gatheringsApiFresh<T>(path: string, options: { method?: string; body?: unknown } = {}): Promise<T> {
+  const API_BASE_URL = process.env.GATHERINGS_API_BASE_URL!;
+  const API_KEY = process.env.GATHERINGS_API_KEY!;
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: options.method ?? "GET",
     headers: { "x-api-key": API_KEY, "Content-Type": "application/json" },
@@ -40,6 +39,7 @@ async function gatheringsApiFresh<T>(path: string, options: { method?: string; b
 }
 
 async function captureServerSnapshot() {
+  const supabase = getSupabase();
   if (!supabase) {
     return { error: "Supabase not configured", status: 503 };
   }

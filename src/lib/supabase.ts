@@ -1,19 +1,25 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-// Website Supabase — stores snapshots, served to visitors
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Lazy-init clients — on Cloudflare Workers, process.env secrets
+// aren't available at module load time, only during request handling.
 
-export const supabase: SupabaseClient | null =
-  supabaseUrl && supabaseKey
-    ? createClient(supabaseUrl, supabaseKey)
-    : null;
+let _supabase: SupabaseClient | null | undefined;
+let _gameSupabase: SupabaseClient | null | undefined;
 
-// Game Server Supabase — source data (player_metrics, market, etc.)
-const gameSupabaseUrl = process.env.GAME_SUPABASE_URL;
-const gameSupabaseKey = process.env.GAME_SUPABASE_SERVICE_ROLE_KEY;
+/** Website Supabase — stores snapshots, served to visitors */
+export function getSupabase(): SupabaseClient | null {
+  if (_supabase !== undefined) return _supabase;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  _supabase = url && key ? createClient(url, key) : null;
+  return _supabase;
+}
 
-export const gameSupabase: SupabaseClient | null =
-  gameSupabaseUrl && gameSupabaseKey
-    ? createClient(gameSupabaseUrl, gameSupabaseKey)
-    : null;
+/** Game Server Supabase — source data (player_metrics, market, etc.) */
+export function getGameSupabase(): SupabaseClient | null {
+  if (_gameSupabase !== undefined) return _gameSupabase;
+  const url = process.env.GAME_SUPABASE_URL;
+  const key = process.env.GAME_SUPABASE_SERVICE_ROLE_KEY;
+  _gameSupabase = url && key ? createClient(url, key) : null;
+  return _gameSupabase;
+}

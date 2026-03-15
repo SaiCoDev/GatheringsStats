@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import {
   getPlayerMetrics,
   getMarketListings,
@@ -12,6 +12,7 @@ import {
 export const dynamic = "force-dynamic";
 
 async function captureGameDataSnapshot() {
+  const supabase = getSupabase();
   if (!supabase) {
     return { error: "Supabase not configured", status: 503 };
   }

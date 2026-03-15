@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
-
-const GATHERINGS_API_BASE_URL = process.env.GATHERINGS_API_BASE_URL!;
-const GATHERINGS_API_KEY = process.env.GATHERINGS_API_KEY!;
-const GATHERINGS_LIVE_ENDPOINT = process.env.GATHERINGS_LIVE_ENDPOINT ?? "/experiences";
+import { getSupabase } from "@/lib/supabase";
 
 async function captureSnapshot() {
+  const supabase = getSupabase();
+  const GATHERINGS_API_BASE_URL = process.env.GATHERINGS_API_BASE_URL!;
+  const GATHERINGS_API_KEY = process.env.GATHERINGS_API_KEY!;
+  const GATHERINGS_LIVE_ENDPOINT = process.env.GATHERINGS_LIVE_ENDPOINT ?? "/experiences";
   if (!supabase) {
     return { error: "Supabase not configured", status: 503 };
   }

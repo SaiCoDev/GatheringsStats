@@ -1,4 +1,4 @@
-import { gameSupabase } from "./supabase";
+import { getGameSupabase } from "./supabase";
 
 const PAGE_SIZE = 1000;
 
@@ -7,6 +7,7 @@ async function fetchAll<T>(
   table: string,
   opts?: { order?: { column: string; ascending: boolean } }
 ): Promise<T[]> {
+  const gameSupabase = getGameSupabase();
   if (!gameSupabase) return [];
   const results: T[] = [];
   let from = 0;
@@ -62,6 +63,7 @@ export async function getPlayerMetrics() {
 
 /** Fetch a limited number of player metric rows for the players page. */
 export async function getPlayerMetricsLimited(limit: number, offset = 0) {
+  const gameSupabase = getGameSupabase();
   if (!gameSupabase) return { players: [], total: 0 };
   const { data, error, count } = await gameSupabase
     .from("player_metrics")
@@ -78,6 +80,7 @@ export async function getPlayerMetricsLimited(limit: number, offset = 0) {
 }
 
 export async function getPlayerNamesByPfids(playerPfids: string[]) {
+  const gameSupabase = getGameSupabase();
   if (!gameSupabase || playerPfids.length === 0) return new Map<string, string>();
 
   const uniquePfids = [...new Set(playerPfids)];
@@ -156,6 +159,7 @@ export const fetchAllLeaderboards = getLeaderboards;
 
 /** Fetch a limited number of leaderboard rows (for initial page load). */
 export async function getLeaderboardsLimited(limit: number) {
+  const gameSupabase = getGameSupabase();
   if (!gameSupabase) return [];
   const { data, error } = await gameSupabase
     .from("leaderboards")
