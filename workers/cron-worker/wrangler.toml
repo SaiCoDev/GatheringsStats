@@ -1,0 +1,13 @@
+name = "gatherings-cron"
+main = "index.js"
+compatibility_date = "2024-01-01"
+
+[triggers]
+crons = ["* * * * *"]
+
+[vars]
+CRON_SECRET = "975ce129fc586827a25c9c7c70e9b1d21b615fab1e0955006cec8eceab669c24"
+
+[[services]]
+binding = "MAIN_SITE"
+service = "gatherings-stats"
