@@ -44,7 +44,7 @@ export async function getGameData(fields?: GameDataField[]): Promise<GameData> {
     .single();
 
   if (error || !data) {
-    console.error("[game-data] query failed:", error?.message ?? "no data");
+    console.error("[game-data] query failed:", error?.message ?? "no data", "code:", error?.code, "details:", error?.details);
     return emptyData();
   }
 
