@@ -8,9 +8,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "cf:build": "opennextjs-cloudflare build",
-    "cf:preview": "opennextjs-cloudflare build && wrangler dev",
-    "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
+    "cf:build": "opennextjs-cloudflare build && node scripts/patch-worker.cjs",
+    "cf:preview": "opennextjs-cloudflare build && node scripts/patch-worker.cjs && wrangler dev",
+    "cf:deploy": "opennextjs-cloudflare build && node scripts/patch-worker.cjs && wrangler deploy"
   },
   "repository": {
     "type": "git",
