@@ -3,7 +3,7 @@ name: Game Data Snapshot Cron
 on:
   schedule:
     # Every 1 minute (GitHub may run ~60-90s apart)
-    - cron: "* * * * *"
+    - cron: "*/5 * * * *"
   workflow_dispatch: # Allow manual trigger
 
 jobs:

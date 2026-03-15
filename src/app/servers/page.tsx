@@ -9,6 +9,43 @@ import { OnlineBanner } from "@/components/OnlineBanner";
 
 const POLL_INTERVAL = 30_000; // 30s — read latest snapshot from Supabase
 
+// Azure region → IANA timezone mapping
+const REGION_TIMEZONES: Record<string, string> = {
+  eastus: "America/New_York",
+  eastus2: "America/New_York",
+  westus: "America/Los_Angeles",
+  westus2: "America/Los_Angeles",
+  westus3: "America/Phoenix",
+  centralus: "America/Chicago",
+  northcentralus: "America/Chicago",
+  southcentralus: "America/Chicago",
+  westeurope: "Europe/Amsterdam",
+  northeurope: "Europe/Dublin",
+  uksouth: "Europe/London",
+  ukwest: "Europe/London",
+  southeastasia: "Asia/Singapore",
+  eastasia: "Asia/Hong_Kong",
+  japaneast: "Asia/Tokyo",
+  japanwest: "Asia/Tokyo",
+  australiaeast: "Australia/Sydney",
+  australiasoutheast: "Australia/Melbourne",
+  brazilsouth: "America/Sao_Paulo",
+  canadacentral: "America/Toronto",
+  koreacentral: "Asia/Seoul",
+  indiacentral: "Asia/Kolkata",
+};
+
+function getRegionTime(region: string): string {
+  const tz = REGION_TIMEZONES[region];
+  if (!tz) return "";
+  return new Date().toLocaleTimeString("en-US", {
+    timeZone: tz,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
 interface AllocationEntry {
   experience: string;
   scenario: string;
@@ -244,10 +281,11 @@ export default function ServersPage() {
                   data.maxCapacity > 0
                     ? (data.playerCount / data.maxCapacity) * 100
                     : 0;
+                const localTime = getRegionTime(region);
                 return (
                   <StatCard
                     key={region}
-                    label={region}
+                    label={`${region}${localTime ? ` · ${localTime}` : ""}`}
                     value={`${data.playerCount} / ${data.maxCapacity}`}
                     sub={`${data.servers} server${data.servers !== 1 ? "s" : ""} · ${usage.toFixed(0)}% usage`}
                     icon={<Globe className="h-5 w-5" />}
