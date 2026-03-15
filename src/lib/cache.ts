@@ -18,47 +18,50 @@ export interface GameData {
   cachedAt: number;
 }
 
-const EMPTY: GameData = {
-  players: [],
-  market: [],
-  ratings: [],
-  feedback: [],
-  cycles: [],
-  leaderboards: [],
-  cachedAt: 0,
-};
+export type GameDataField = "players" | "market" | "ratings" | "feedback" | "cycles" | "leaderboards";
 
-let cached: GameData | null = null;
+const ALL_FIELDS: GameDataField[] = ["players", "market", "ratings", "feedback", "cycles", "leaderboards"];
 
 /**
- * Fetch the latest game data snapshot from the website DB.
- * Never queries the game server directly — that only happens via the cron
- * or the "Sync now" button (/api/game-data-snapshot).
+ * Fetch specific fields from the latest game data snapshot.
+ * Only selects the requested columns from Supabase to keep the payload small.
  */
-export async function getGameData(forceRefresh = false): Promise<GameData> {
-  if (cached && !forceRefresh) return cached;
+export async function getGameData(fields?: GameDataField[]): Promise<GameData> {
+  if (!supabase) return emptyData();
 
-  if (supabase) {
-    const { data, error } = await supabase
-      .from("game_data_snapshots")
-      .select("*")
-      .order("captured_at", { ascending: false })
-      .limit(1)
-      .single();
+  const selected = fields ?? ALL_FIELDS;
+  const columns = ["captured_at", ...selected].join(",");
 
-    if (!error && data) {
-      cached = {
-        players: (data.players ?? []) as PlayerMetric[],
-        market: (data.market ?? []) as MarketListing[],
-        ratings: (data.ratings ?? []) as FeedbackRating[],
-        feedback: (data.feedback ?? []) as PlayerFeedback[],
-        cycles: (data.cycles ?? []) as DailyCycle[],
-        leaderboards: (data.leaderboards ?? []) as LeaderboardEntry[],
-        cachedAt: new Date(data.captured_at).getTime(),
-      };
-      return cached;
-    }
-  }
+  const { data, error } = await supabase
+    .from("game_data_snapshots")
+    .select(columns)
+    .order("captured_at", { ascending: false })
+    .limit(1)
+    .single();
 
-  return EMPTY;
+  if (error || !data) return emptyData();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const row = data as any;
+  return {
+    players: (row.players ?? []) as PlayerMetric[],
+    market: (row.market ?? []) as MarketListing[],
+    ratings: (row.ratings ?? []) as FeedbackRating[],
+    feedback: (row.feedback ?? []) as PlayerFeedback[],
+    cycles: (row.cycles ?? []) as DailyCycle[],
+    leaderboards: (row.leaderboards ?? []) as LeaderboardEntry[],
+    cachedAt: new Date(row.captured_at).getTime(),
+  };
+}
+
+function emptyData(): GameData {
+  return {
+    players: [],
+    market: [],
+    ratings: [],
+    feedback: [],
+    cycles: [],
+    leaderboards: [],
+    cachedAt: 0,
+  };
 }

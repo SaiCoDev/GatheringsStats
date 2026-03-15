@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   const refresh = wantsRefresh && allowRefresh("leaderboards");
   const action = req.nextUrl.searchParams.get("action");
 
-  const gameData = await getGameData(refresh);
+  const gameData = await getGameData(["leaderboards"]);
   const all = gameData.leaderboards;
 
   // Group by leaderboardId

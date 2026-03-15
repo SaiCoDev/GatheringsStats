@@ -1,33 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getGameData } from "@/lib/cache";
-import { allowRefresh, cooldownRemaining } from "@/lib/rate-limit";
+import { getGameData, type GameDataField } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
+const VALID_FIELDS: GameDataField[] = ["players", "market", "ratings", "feedback", "cycles", "leaderboards"];
+
 export async function GET(req: NextRequest) {
   try {
-    const wantsRefresh = req.nextUrl.searchParams.get("refresh") === "1";
-    const refresh = wantsRefresh && allowRefresh("game-data");
-
-    if (wantsRefresh && !refresh) {
-      // Still return cached data but tell the client they're rate-limited
-      const data = await getGameData(false);
-      return NextResponse.json(
-        { ...data, rateLimited: true, cooldown: cooldownRemaining("game-data") },
-        { status: 200 }
-      );
-    }
-
-    const data = await getGameData(refresh);
-
-    // Optional field selection: ?fields=ratings,feedback,cycles
+    // Parse requested fields
     const fieldsParam = req.nextUrl.searchParams.get("fields");
-    if (fieldsParam) {
-      const allowed = ["players", "market", "ratings", "feedback", "cycles", "leaderboards"] as const;
-      const requested = fieldsParam.split(",").filter((f) => allowed.includes(f as typeof allowed[number]));
+    const fields = fieldsParam
+      ? fieldsParam.split(",").filter((f): f is GameDataField => VALID_FIELDS.includes(f as GameDataField))
+      : undefined;
+
+    const data = await getGameData(fields);
+
+    // If specific fields were requested, only return those
+    if (fields) {
       const partial: Record<string, unknown> = { cachedAt: data.cachedAt };
-      for (const field of requested) {
-        partial[field] = data[field as keyof typeof data];
+      for (const field of fields) {
+        partial[field] = data[field];
       }
       return NextResponse.json(partial);
     }

@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
   const offset = Number.isFinite(requestedOffset) ? Math.max(requestedOffset, 0) : 0;
 
   try {
-    const gameData = await getGameData(refresh);
+    const gameData = await getGameData(["players", "leaderboards", "feedback"]);
 
     // Build a name lookup from leaderboards + player_feedback in the snapshot
     const names = new Map<string, string>();
