@@ -7,31 +7,6 @@ import {
 
 const EXPERIENCE_ID = "81ac183c-1d09-44a2-b0b5-78abaf8c9877";
 
-/* ── Bedrock server ping via public API ────────────────────────────── */
-
-interface BedrockPingResult {
-  online: boolean;
-  players?: number;
-  maxPlayers?: number;
-  version?: string;
-}
-
-async function pingBedrockServer(ip: string, port: number): Promise<BedrockPingResult> {
-  try {
-    const res = await fetch(`https://api.mcsrvstat.us/bedrock/3/${ip}:${port}`, { signal: AbortSignal.timeout(5000) });
-    if (!res.ok) return { online: false };
-    const json = await res.json();
-    return {
-      online: !!json.online,
-      players: json.players?.online ?? 0,
-      maxPlayers: json.players?.max ?? 0,
-      version: json.version ?? undefined,
-    };
-  } catch {
-    return { online: false };
-  }
-}
-
 async function gatheringsApi<T>(path: string): Promise<T> {
   const API_BASE_URL = process.env.GATHERINGS_API_BASE_URL!;
   const API_KEY = process.env.GATHERINGS_API_KEY!;
@@ -123,36 +98,6 @@ async function handleServers() {
         mode: result.value.mode,
         scenarioId: result.value.scenarioId,
       });
-    }
-  }
-
-  // Ping all servers via public API for player counts
-  // Deduplicate by ip:port to avoid hitting the API multiple times for same server
-  const uniqueEndpoints = new Map<string, { ip: string; port: number }>();
-  for (const srv of allServers) {
-    const key = `${srv.ipV4Address}:${srv.gameplayPort}`;
-    if (!uniqueEndpoints.has(key)) uniqueEndpoints.set(key, { ip: srv.ipV4Address, port: srv.gameplayPort });
-  }
-  const pingResults = await Promise.allSettled(
-    [...uniqueEndpoints.values()].map((ep) => pingBedrockServer(ep.ip, ep.port))
-  );
-  const pingMap = new Map<string, BedrockPingResult>();
-  const endpoints = [...uniqueEndpoints.keys()];
-  for (let i = 0; i < endpoints.length; i++) {
-    const pr = pingResults[i];
-    if (pr.status === "fulfilled") pingMap.set(endpoints[i], pr.value);
-  }
-
-  for (let i = 0; i < allServers.length; i++) {
-    const key = `${allServers[i].ipV4Address}:${allServers[i].gameplayPort}`;
-    const ping = pingMap.get(key);
-    if (ping?.online) {
-      allServers[i].players = ping.players;
-      allServers[i].maxPlayers = ping.maxPlayers;
-      allServers[i].version = ping.version;
-      allServers[i].pingOnline = true;
-    } else {
-      allServers[i].pingOnline = false;
     }
   }
 
