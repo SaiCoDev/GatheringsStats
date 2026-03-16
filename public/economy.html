@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enchanted Treasure Hunt - Economy Visualization</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0D0D15;
+  --card: #161625;
+  --gold: #DDA200;
+  --gold-light: #FFD54F;
+  --text: #E8E6E3;
+  --dim: #8A8A9A;
+  --border: #2A2A3E;
+  --overworld: #4CAF50;
+  --caves: #8D6E63;
+  --nether: #E53935;
+  --end: #AB47BC;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* NAV */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(13,13,21,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 1.5rem;
+}
+nav .nav-inner {
+  max-width: 1400px; margin: 0 auto;
+  display: flex; align-items: center; gap: 0.25rem;
+  overflow-x: auto; scrollbar-width: none;
+}
+nav .nav-inner::-webkit-scrollbar { display: none; }
+nav a {
+  color: var(--dim); text-decoration: none;
+  padding: 0.85rem 0.75rem;
+  font-size: 0.82rem; font-weight: 500;
+  white-space: nowrap;
+  transition: color 0.2s;
+  border-bottom: 2px solid transparent;
+}
+nav a:hover, nav a.active { color: var(--gold); border-bottom-color: var(--gold); }
+nav .logo {
+  font-family: 'Cinzel', serif; font-weight: 700;
+  color: var(--gold); font-size: 1rem;
+  margin-right: 1rem; white-space: nowrap;
+}
+
+/* LAYOUT */
+.container { max-width: 1400px; margin: 0 auto; padding: 1.5rem; }
+
+section {
+  margin-bottom: 3rem;
+  scroll-margin-top: 4rem;
+}
+
+h1, h2, h3 { font-family: 'Cinzel', serif; }
+h1 {
+  font-size: 2.2rem; color: var(--gold);
+  text-align: center; margin: 2rem 0 0.5rem;
+  text-shadow: 0 0 30px rgba(221,162,0,0.3);
+}
+.subtitle {
+  text-align: center; color: var(--dim);
+  font-size: 0.95rem; margin-bottom: 2.5rem;
+}
+h2 {
+  font-size: 1.5rem; color: var(--gold-light);
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+/* CARDS */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* WORLD OVERVIEW */
+.world-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.world-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.world-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.world-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 3px;
+}
+.world-card.overworld::before { background: var(--overworld); }
+.world-card.caves::before { background: var(--caves); }
+.world-card.nether::before { background: var(--nether); }
+.world-card.end::before { background: var(--end); }
+.world-card h3 { font-size: 1.15rem; margin-bottom: 0.5rem; }
+.world-card.overworld h3 { color: var(--overworld); }
+.world-card.caves h3 { color: var(--caves); }
+.world-card.nether h3 { color: var(--nether); }
+.world-card.end h3 { color: var(--end); }
+.world-card .stat { display: flex; justify-content: space-between; padding: 0.25rem 0; font-size: 0.88rem; }
+.world-card .stat-label { color: var(--dim); }
+.world-card .stat-value { color: var(--text); font-weight: 600; }
+
+/* CHART CONTAINERS */
+.chart-wrap {
+  position: relative;
+  width: 100%;
+  max-height: 450px;
+}
+.chart-wrap canvas { max-height: 450px; }
+
+/* TABLE */
+.table-controls {
+  display: flex; gap: 0.75rem; margin-bottom: 1rem;
+  flex-wrap: wrap; align-items: center;
+}
+.table-controls input, .table-controls select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-family: 'Inter', sans-serif;
+}
+.table-controls input:focus, .table-controls select:focus {
+  outline: none; border-color: var(--gold);
+}
+.table-controls input { flex: 1; min-width: 180px; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+thead th {
+  background: var(--bg);
+  color: var(--gold-light);
+  padding: 0.65rem 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  font-family: 'Cinzel', serif;
+  font-size: 0.8rem;
+  cursor: pointer;
+  user-select: none;
+  position: sticky; top: 0;
+  border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+}
+thead th:hover { color: var(--gold); }
+thead th .sort-arrow { margin-left: 4px; font-size: 0.7rem; }
+tbody tr {
+  border-bottom: 1px solid rgba(42,42,62,0.5);
+  transition: background 0.15s;
+}
+tbody tr:hover { background: rgba(221,162,0,0.05); }
+td {
+  padding: 0.55rem 0.75rem;
+  vertical-align: middle;
+}
+.tool-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.tool-wooden_shovel { background: rgba(139,90,43,0.25); color: #C9A066; }
+.tool-wooden_pickaxe { background: rgba(139,90,43,0.25); color: #C9A066; }
+.tool-stone_pickaxe { background: rgba(128,128,128,0.25); color: #B0B0B0; }
+.tool-iron_pickaxe { background: rgba(192,192,192,0.25); color: #D0D0D0; }
+.tool-diamond_pickaxe { background: rgba(0,200,200,0.2); color: #4DD9D9; }
+.price-cell { font-weight: 600; color: var(--gold-light); font-variant-numeric: tabular-nums; }
+
+/* TOOL PROGRESSION */
+.tool-path {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+  padding-left: 2rem;
+}
+.tool-path::before {
+  content: '';
+  position: absolute;
+  left: 1.15rem; top: 1rem; bottom: 1rem;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--overworld), var(--caves), var(--nether), var(--end), var(--gold));
+}
+.tool-node {
+  display: flex; align-items: center; gap: 1rem;
+  padding: 0.65rem 1rem;
+  position: relative;
+  transition: background 0.15s;
+  border-radius: 8px;
+}
+.tool-node:hover { background: rgba(221,162,0,0.05); }
+.tool-node::before {
+  content: '';
+  position: absolute;
+  left: -1.35rem; top: 50%;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: var(--gold);
+  border: 2px solid var(--bg);
+  transform: translateY(-50%);
+}
+.tool-node .step-num {
+  color: var(--dim);
+  font-size: 0.75rem;
+  font-weight: 600;
+  min-width: 1.5rem;
+}
+.tool-node .tool-name {
+  font-weight: 600;
+  color: var(--text);
+  min-width: 160px;
+}
+.tool-node .eff-badge {
+  background: rgba(221,162,0,0.15);
+  color: var(--gold-light);
+  padding: 0.1rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.tool-node .enchants {
+  color: var(--dim);
+  font-size: 0.82rem;
+}
+
+/* MULTIPLIER TABLE */
+.mult-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.25rem;
+}
+.mult-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem;
+}
+.mult-card h3 {
+  color: var(--gold-light);
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+}
+.mult-row {
+  display: flex; justify-content: space-between;
+  padding: 0.3rem 0;
+  font-size: 0.85rem;
+  border-bottom: 1px solid rgba(42,42,62,0.3);
+}
+.mult-row:last-child { border: none; }
+
+/* CURRENCY PYRAMID */
+.currency-pyramid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: 2rem 0;
+}
+.currency-tier {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem 2rem;
+  border-radius: 10px;
+  margin-bottom: 0.5rem;
+  transition: transform 0.2s;
+  position: relative;
+}
+.currency-tier:hover { transform: scale(1.03); }
+.currency-tier .tier-name {
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+.currency-tier .tier-value {
+  font-size: 0.9rem;
+  color: var(--dim);
+}
+.tier-diamond { background: linear-gradient(135deg, rgba(0,200,200,0.15), rgba(0,150,200,0.08)); border: 1px solid rgba(0,200,200,0.3); min-width: 200px; }
+.tier-diamond .tier-name { color: #4DD9D9; }
+.tier-goldbar { background: linear-gradient(135deg, rgba(221,162,0,0.2), rgba(255,213,79,0.08)); border: 1px solid rgba(221,162,0,0.4); min-width: 280px; }
+.tier-goldbar .tier-name { color: var(--gold); }
+.tier-gold { background: linear-gradient(135deg, rgba(255,213,79,0.15), rgba(255,213,79,0.05)); border: 1px solid rgba(255,213,79,0.3); min-width: 360px; }
+.tier-gold .tier-name { color: var(--gold-light); }
+.tier-silver { background: linear-gradient(135deg, rgba(192,192,192,0.12), rgba(192,192,192,0.04)); border: 1px solid rgba(192,192,192,0.25); min-width: 440px; }
+.tier-silver .tier-name { color: #C0C0C0; }
+.tier-bronze { background: linear-gradient(135deg, rgba(205,127,50,0.12), rgba(205,127,50,0.04)); border: 1px solid rgba(205,127,50,0.25); min-width: 520px; }
+.tier-bronze .tier-name { color: #CD7F32; }
+.tier-connector {
+  width: 2px; height: 12px;
+  background: var(--border);
+}
+
+/* EARNINGS TABLE */
+.earnings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1rem;
+}
+.earning-group { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; }
+.earning-group h3 { color: var(--gold-light); font-size: 0.95rem; margin-bottom: 0.75rem; }
+.earning-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid rgba(42,42,62,0.3);
+  font-size: 0.88rem;
+}
+.earning-row:last-child { border: none; }
+.earning-val { color: var(--gold-light); font-weight: 600; }
+
+/* STACKING EXAMPLE */
+.stack-example {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin-top: 1.25rem;
+  font-family: 'Inter', monospace;
+}
+.stack-example h3 {
+  color: var(--gold-light);
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+.stack-formula {
+  color: var(--text);
+  font-size: 0.95rem;
+  line-height: 2;
+}
+.stack-formula .op { color: var(--dim); }
+.stack-formula .val { color: var(--gold-light); font-weight: 600; }
+.stack-formula .result { color: var(--gold); font-size: 1.2rem; font-weight: 700; }
+
+/* UPGRADE MULT */
+.upgrade-mult-row {
+  display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;
+}
+.upgrade-mult-badge {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 1.25rem;
+  text-align: center;
+}
+.upgrade-mult-badge .mult-val { color: var(--gold-light); font-weight: 700; font-size: 1.1rem; }
+.upgrade-mult-badge .mult-label { color: var(--dim); font-size: 0.75rem; }
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  h1 { font-size: 1.6rem; }
+  h2 { font-size: 1.2rem; }
+  .container { padding: 1rem; }
+  nav a { padding: 0.75rem 0.5rem; font-size: 0.75rem; }
+  .currency-tier { min-width: unset !important; width: 100%; }
+  .tool-node .tool-name { min-width: 120px; }
+  td, th { padding: 0.4rem 0.5rem; font-size: 0.8rem; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <span class="logo">Enchanted Treasure Hunt</span>
+    <a href="#worlds">Worlds</a>
+    <a href="#mine-progression">Mine Progression</a>
+    <a href="#block-prices">Block Prices</a>
+    <a href="#mine-cost">Mine Cost</a>
+    <a href="#tool-upgrades">Tools</a>
+    <a href="#enchantments">Enchantments</a>
+    <a href="#currency">Currency</a>
+    <a href="#earnings">Earnings</a>
+    <a href="#prestige">Prestige</a>
+  </div>
+</nav>
+
+<div class="container">
+
+<h1>Economy Visualization</h1>
+<p class="subtitle">A comprehensive guide to the in-game economy, progression, and rewards</p>
+
+<!-- WORLD OVERVIEW -->
+<section id="worlds">
+<h2>World Overview</h2>
+<div class="world-grid">
+  <div class="world-card overworld">
+    <h3>Overworld</h3>
+    <div class="stat"><span class="stat-label">Levels</span><span class="stat-value">1 - 20</span></div>
+    <div class="stat"><span class="stat-label">Profit Range</span><span class="stat-value">100 - 2,000</span></div>
+    <div class="stat"><span class="stat-label">Time Range</span><span class="stat-value">5.0 - 10.4 min</span></div>
+    <div class="stat"><span class="stat-label">Top Block</span><span class="stat-value">Slime (60)</span></div>
+  </div>
+  <div class="world-card caves">
+    <h3>Caves</h3>
+    <div class="stat"><span class="stat-label">Levels</span><span class="stat-value">21 - 40</span></div>
+    <div class="stat"><span class="stat-label">Profit Range</span><span class="stat-value">3,000 - 22,000</span></div>
+    <div class="stat"><span class="stat-label">Time Range</span><span class="stat-value">7.0 - 17.0 min</span></div>
+    <div class="stat"><span class="stat-label">Top Block</span><span class="stat-value">Gold Ore (1,100)</span></div>
+  </div>
+  <div class="world-card nether">
+    <h3>Nether</h3>
+    <div class="stat"><span class="stat-label">Levels</span><span class="stat-value">41 - 60</span></div>
+    <div class="stat"><span class="stat-label">Profit Range</span><span class="stat-value">31,600 - 220,000</span></div>
+    <div class="stat"><span class="stat-label">Time Range</span><span class="stat-value">10.0 - 28.6 min</span></div>
+    <div class="stat"><span class="stat-label">Top Block</span><span class="stat-value">Netherite Block (220k)</span></div>
+  </div>
+  <div class="world-card end">
+    <h3>End</h3>
+    <div class="stat"><span class="stat-label">Levels</span><span class="stat-value">61 - 80</span></div>
+    <div class="stat"><span class="stat-label">Profit Range</span><span class="stat-value">316,000 - 2,200,000</span></div>
+    <div class="stat"><span class="stat-label">Time Range</span><span class="stat-value">15.0 - 51.7 min</span></div>
+    <div class="stat"><span class="stat-label">Top Block</span><span class="stat-value">Netherite Block (220k)</span></div>
+  </div>
+</div>
+</section>
+
+<!-- 1. MINE PROGRESSION -->
+<section id="mine-progression">
+<h2>1. Mine Progression Chart</h2>
+<div class="card">
+  <div class="chart-wrap"><canvas id="mineProgressionChart"></canvas></div>
+</div>
+</section>
+
+<!-- 2. BLOCK PRICES -->
+<section id="block-prices">
+<h2>2. Block Prices</h2>
+<div class="card">
+  <div class="table-controls">
+    <input type="text" id="blockSearch" placeholder="Search blocks...">
+    <select id="toolFilter">
+      <option value="">All Tools</option>
+      <option value="wooden_shovel">Wooden Shovel</option>
+      <option value="wooden_pickaxe">Wooden Pickaxe</option>
+      <option value="stone_pickaxe">Stone Pickaxe</option>
+      <option value="iron_pickaxe">Iron Pickaxe</option>
+      <option value="diamond_pickaxe">Diamond Pickaxe</option>
+    </select>
+    <select id="worldFilter">
+      <option value="">All Worlds</option>
+      <option value="overworld">Overworld (1-20)</option>
+      <option value="caves">Caves (21-40)</option>
+      <option value="nether">Nether (41-60)</option>
+      <option value="end">End (61-80)</option>
+    </select>
+  </div>
+  <div style="overflow-x:auto;">
+  <table id="blockTable">
+    <thead>
+      <tr>
+        <th data-sort="name">Block <span class="sort-arrow"></span></th>
+        <th data-sort="price">Sell Price <span class="sort-arrow"></span></th>
+        <th data-sort="tool">Required Tool <span class="sort-arrow"></span></th>
+        <th data-sort="levels">Mine Levels <span class="sort-arrow"></span></th>
+      </tr>
+    </thead>
+    <tbody id="blockTableBody"></tbody>
+  </table>
+  </div>
+</div>
+</section>
+
+<!-- 3. MINE COST TIMELINE -->
+<section id="mine-cost">
+<h2>3. Mine Cost Timeline (Minutes per Area)</h2>
+<div class="card">
+  <div class="chart-wrap"><canvas id="mineCostChart"></canvas></div>
+</div>
+</section>
+
+<!-- 4. TOOL UPGRADES -->
+<section id="tool-upgrades">
+<h2>4. Tool Upgrade Progression</h2>
+<div class="card">
+  <p style="color:var(--dim); font-size:0.88rem; margin-bottom:1rem;">
+    Cost formula: <code style="color:var(--gold-light);">calculateCost(player, MINUTES_PER_AREA[currentLevel]) &times; TOOL_UPGRADE_MATERIAL</code>
+  </p>
+  <div class="upgrade-mult-row">
+    <div class="upgrade-mult-badge"><div class="mult-val">1x</div><div class="mult-label">Base</div></div>
+    <div class="upgrade-mult-badge"><div class="mult-val">2x</div><div class="mult-label">Tier 2</div></div>
+    <div class="upgrade-mult-badge"><div class="mult-val">3x</div><div class="mult-label">Tier 3</div></div>
+    <div class="upgrade-mult-badge"><div class="mult-val">5x</div><div class="mult-label">Tier 4</div></div>
+  </div>
+  <div style="margin-top:1.5rem;">
+    <div class="tool-path" id="toolPath"></div>
+  </div>
+</div>
+</section>
+
+<!-- 5. ENCHANTMENTS -->
+<section id="enchantments">
+<h2>5. Enchantment Cost Scaling</h2>
+<div class="card">
+  <div class="mult-grid">
+    <div class="mult-card">
+      <h3>Cost Multiplier Enchantments</h3>
+      <div class="mult-row"><span>Fortune</span><span style="color:var(--gold-light)">+50% per level</span></div>
+      <div class="mult-row"><span>CoinMaster</span><span style="color:var(--gold-light)">+200% per level</span></div>
+      <div class="mult-row"><span>OreMaster</span><span style="color:var(--gold-light)">+25% per level</span></div>
+      <div class="mult-row"><span>Explosive</span><span style="color:var(--gold-light)">+200% per level</span></div>
+      <div class="mult-row"><span>Laser</span><span style="color:var(--gold-light)">+100% per level (0% currently)</span></div>
+    </div>
+    <div class="mult-card">
+      <h3>Effect Enchantments</h3>
+      <div class="mult-row"><span>Speed</span><span style="color:var(--gold-light)">Effect per level</span></div>
+      <div class="mult-row"><span>Jump</span><span style="color:var(--gold-light)">Effect per level</span></div>
+    </div>
+    <div class="mult-card">
+      <h3>Other Multipliers</h3>
+      <div class="mult-row"><span>Prestige</span><span style="color:var(--gold-light)">+5% per level</span></div>
+    </div>
+  </div>
+  <div class="stack-example">
+    <h3>Multiplier Stacking Example</h3>
+    <div class="stack-formula">
+      <span class="op">Multiplier = </span><span class="val">1</span>
+      <span class="op"> + (Fortune 10 &times; 0.5) </span><span class="val">= +5.0</span><br>
+      <span class="op" style="margin-left:5.5rem;">+ (CoinMaster 5 &times; 2.0) </span><span class="val">= +10.0</span><br>
+      <span class="op" style="margin-left:5.5rem;">+ (Prestige 10 &times; 0.05) </span><span class="val">= +0.5</span><br>
+      <br>
+      <span class="op">Total = 1 + 5.0 + 10.0 + 0.5 = </span><span class="result">16.5x</span>
+    </div>
+  </div>
+  <div class="card" style="margin-top:1.5rem; padding:1rem;">
+    <div class="chart-wrap"><canvas id="enchantChart"></canvas></div>
+  </div>
+</div>
+</section>
+
+<!-- 6. CURRENCY -->
+<section id="currency">
+<h2>6. Currency Tiers</h2>
+<div class="card">
+  <div class="currency-pyramid">
+    <div class="currency-tier tier-diamond">
+      <div>
+        <div class="tier-name">Diamond</div>
+        <div class="tier-value">= 100,000,000 Bronze</div>
+      </div>
+    </div>
+    <div class="tier-connector"></div>
+    <div class="currency-tier tier-goldbar">
+      <div>
+        <div class="tier-name">Gold Bar</div>
+        <div class="tier-value">= 1,000,000 Bronze</div>
+      </div>
+    </div>
+    <div class="tier-connector"></div>
+    <div class="currency-tier tier-gold">
+      <div>
+        <div class="tier-name">Gold</div>
+        <div class="tier-value">= 10,000 Bronze</div>
+      </div>
+    </div>
+    <div class="tier-connector"></div>
+    <div class="currency-tier tier-silver">
+      <div>
+        <div class="tier-name">Silver</div>
+        <div class="tier-value">= 100 Bronze</div>
+      </div>
+    </div>
+    <div class="tier-connector"></div>
+    <div class="currency-tier tier-bronze">
+      <div>
+        <div class="tier-name">Bronze</div>
+        <div class="tier-value">= 1 (Base Unit)</div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- 7. EARNINGS -->
+<section id="earnings">
+<h2>7. Earnings Sources</h2>
+<div class="card">
+  <p style="color:var(--dim); font-size:0.85rem; margin-bottom:1rem;">All values are "units" multiplied by <code style="color:var(--gold-light);">calculateCost()</code> to get actual coin values.</p>
+  <div class="earnings-grid">
+    <div class="earning-group">
+      <h3>Pickups</h3>
+      <div class="earning-row"><span>Small Coin Pile</span><span class="earning-val">0.2 units</span></div>
+      <div class="earning-row"><span>Medium Coin Pile</span><span class="earning-val">0.3 units</span></div>
+      <div class="earning-row"><span>Treasure Small</span><span class="earning-val">0.2 units</span></div>
+      <div class="earning-row"><span>Treasure Big</span><span class="earning-val">0.3 units</span></div>
+    </div>
+    <div class="earning-group">
+      <h3>Challenges</h3>
+      <div class="earning-row"><span>Daily Challenge</span><span class="earning-val">1.0 unit</span></div>
+      <div class="earning-row"><span>Weekly Challenge</span><span class="earning-val">2.0 units</span></div>
+    </div>
+    <div class="earning-group">
+      <h3>Missions</h3>
+      <div class="earning-row"><span>Participant</span><span class="earning-val">0.2 units</span></div>
+      <div class="earning-row"><span>Top 5</span><span class="earning-val">1.0 unit</span></div>
+      <div class="earning-row"><span>Winner</span><span class="earning-val">3.0 units</span></div>
+    </div>
+    <div class="earning-group">
+      <h3>Events</h3>
+      <div class="earning-row"><span>Participant</span><span class="earning-val">1.0 unit</span></div>
+      <div class="earning-row"><span>Top 5</span><span class="earning-val">2.0 units</span></div>
+      <div class="earning-row"><span>Winner</span><span class="earning-val">5.0 units</span></div>
+    </div>
+    <div class="earning-group">
+      <h3>Minigames</h3>
+      <div class="earning-row"><span>Participant</span><span class="earning-val">0.2 units</span></div>
+      <div class="earning-row"><span>Winner</span><span class="earning-val">2.0 units</span></div>
+    </div>
+    <div class="earning-group">
+      <h3>Leaderboard & Streaks</h3>
+      <div class="earning-row"><span>Leaderboard Top 1</span><span class="earning-val">5.0 units</span></div>
+      <div class="earning-row"><span>Leaderboard Top 5</span><span class="earning-val">3.0 units</span></div>
+      <div class="earning-row"><span>Daily Streak</span><span class="earning-val">2.0 units</span></div>
+      <div class="earning-row"><span>Weekly Streak</span><span class="earning-val">5.0 units</span></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- 8. PRESTIGE -->
+<section id="prestige">
+<h2>8. Prestige Bonus</h2>
+<div class="card">
+  <p style="color:var(--dim); font-size:0.85rem; margin-bottom:1rem;">+5% bonus per prestige level, up to 250% at level 50.</p>
+  <div class="chart-wrap"><canvas id="prestigeChart"></canvas></div>
+</div>
+</section>
+
+</div><!-- /container -->
+
+<footer style="text-align:center; padding:2rem; color:var(--dim); font-size:0.8rem; border-top:1px solid var(--border); margin-top:2rem;">
+  Enchanted Treasure Hunt Economy Visualization &mdash; Game Reference Document
+</footer>
+
+<script>
+// ========== DATA ==========
+const profitData = [
+  100,200,300,400,500,600,700,800,900,1000,
+  1100,1200,1300,1400,1500,1600,1700,1800,1900,2000,
+  3000,4000,5000,6000,7000,8000,9000,10000,11000,12000,
+  13000,14000,15000,16000,17000,18000,19000,20000,21000,22000,
+  31600,41200,50800,60400,70000,80000,90000,100000,110000,120000,
+  130000,140000,150000,160000,170000,180000,190000,200000,210000,220000,
+  316000,412000,508000,604000,700000,800000,900000,1000000,1100000,1200000,
+  1300000,1400000,1500000,1600000,1700000,1800000,1900000,2000000,2100000,2200000
+];
+
+const minutesData = [
+  5.0,5.2,5.3,5.5,5.7,5.9,6.1,6.4,6.6,6.8,7.1,7.4,7.7,8.0,8.4,8.7,9.1,9.5,10.0,10.4,
+  7.0,7.3,7.6,7.9,8.2,8.6,8.9,9.3,9.8,10.2,10.7,11.2,11.8,12.4,13.0,13.7,14.5,15.3,16.1,17.0,
+  10.0,10.5,11.0,11.5,12.1,12.7,13.4,14.1,14.8,15.7,16.6,17.5,18.5,19.7,20.9,22.2,23.6,25.1,26.8,28.6,
+  15.0,15.8,16.7,17.7,18.8,19.9,21.1,22.4,23.9,25.4,27.1,29.0,31.0,33.2,35.6,38.3,41.2,44.3,47.8,51.7
+];
+
+const worldColors = { overworld:'#4CAF50', caves:'#8D6E63', nether:'#E53935', end:'#AB47BC' };
+function getWorld(lvl) {
+  if (lvl <= 20) return 'overworld';
+  if (lvl <= 40) return 'caves';
+  if (lvl <= 60) return 'nether';
+  return 'end';
+}
+function getWorldName(w) { return w.charAt(0).toUpperCase() + w.slice(1); }
+
+const levels = Array.from({length:80}, (_,i) => i+1);
+
+// ========== CHART DEFAULTS ==========
+Chart.defaults.color = '#8A8A9A';
+Chart.defaults.borderColor = '#2A2A3E';
+Chart.defaults.font.family = "'Inter', sans-serif";
+
+// ========== 1. MINE PROGRESSION ==========
+(function(){
+  const datasets = ['overworld','caves','nether','end'].map(world => {
+    const start = world === 'overworld' ? 0 : world === 'caves' ? 20 : world === 'nether' ? 40 : 60;
+    const end = start + 20;
+    const data = levels.map((lvl, i) => (i >= start && i < end) ? profitData[i] : null);
+    return {
+      label: getWorldName(world),
+      data, borderColor: worldColors[world],
+      backgroundColor: worldColors[world] + '33',
+      borderWidth: 2.5, pointRadius: 3, pointHoverRadius: 6,
+      tension: 0.3, fill: false, spanGaps: false
+    };
+  });
+  new Chart(document.getElementById('mineProgressionChart'), {
+    type: 'line',
+    data: { labels: levels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        y: {
+          type: 'logarithmic', title: { display: true, text: 'targetProfitPer50', color: '#8A8A9A' },
+          grid: { color: 'rgba(42,42,62,0.5)' },
+          ticks: { callback: v => v >= 1000000 ? (v/1000000)+'M' : v >= 1000 ? (v/1000)+'K' : v }
+        },
+        x: { title: { display: true, text: 'Mine Level', color: '#8A8A9A' }, grid: { color: 'rgba(42,42,62,0.3)' } }
+      },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()} coins`
+          }
+        },
+        legend: { labels: { usePointStyle: true, padding: 16 } }
+      }
+    }
+  });
+})();
+
+// ========== 2. BLOCK TABLE ==========
+const blocks = [
+  {name:'dirt',price:1,tool:'wooden_shovel',levels:'1-10, 21-25'},
+  {name:'grass_block',price:3,tool:'wooden_shovel',levels:'1-5'},
+  {name:'coarse_dirt',price:4,tool:'wooden_shovel',levels:'1-5, 11-15'},
+  {name:'sand',price:4,tool:'wooden_shovel',levels:'1-5, 16-20'},
+  {name:'gravel',price:5,tool:'wooden_shovel',levels:'1-15, 21-25'},
+  {name:'dirt_with_roots',price:8,tool:'wooden_shovel',levels:'6-10'},
+  {name:'podzol',price:10,tool:'wooden_shovel',levels:'6-10'},
+  {name:'snow',price:12,tool:'wooden_shovel',levels:'11-15'},
+  {name:'packed_ice',price:15,tool:'wooden_shovel',levels:'11-15'},
+  {name:'mud',price:18,tool:'wooden_shovel',levels:'16-20'},
+  {name:'clay',price:22,tool:'wooden_shovel',levels:'16-20, 26-30'},
+  {name:'moss_block',price:40,tool:'wooden_shovel',levels:'21-30'},
+  {name:'slime',price:60,tool:'wooden_shovel',levels:'16-25'},
+  {name:'stone',price:25,tool:'wooden_pickaxe',levels:'21-40'},
+  {name:'cobblestone',price:28,tool:'wooden_pickaxe',levels:'21-25'},
+  {name:'tuff',price:45,tool:'wooden_pickaxe',levels:'31-40, 41-45'},
+  {name:'dripstone_block',price:80,tool:'wooden_pickaxe',levels:'31-35'},
+  {name:'deepslate',price:90,tool:'wooden_pickaxe',levels:'36-45'},
+  {name:'cobbled_deepslate',price:95,tool:'wooden_pickaxe',levels:'36-40'},
+  {name:'coal_ore',price:120,tool:'wooden_pickaxe',levels:'21-35'},
+  {name:'netherrack',price:140,tool:'wooden_pickaxe',levels:'41-50'},
+  {name:'blackstone',price:220,tool:'wooden_pickaxe',levels:'41-55'},
+  {name:'magma',price:260,tool:'wooden_pickaxe',levels:'41-50'},
+  {name:'copper_ore',price:260,tool:'stone_pickaxe',levels:'26-40'},
+  {name:'quartz_ore',price:380,tool:'wooden_pickaxe',levels:'41-50'},
+  {name:'warped_nylium',price:420,tool:'wooden_shovel',levels:'46-50'},
+  {name:'basalt',price:520,tool:'wooden_pickaxe',levels:'51-60'},
+  {name:'iron_ore',price:520,tool:'stone_pickaxe',levels:'26-40'},
+  {name:'honey_block',price:800,tool:'wooden_pickaxe',levels:'46-50, 61-65, 71-75'},
+  {name:'nether_brick',price:900,tool:'wooden_pickaxe',levels:'51-60'},
+  {name:'gold_ore',price:1100,tool:'iron_pickaxe',levels:'36-40, 51-55'},
+  {name:'soul_sand',price:1200,tool:'wooden_shovel',levels:'56-60'},
+  {name:'soul_soil',price:1300,tool:'wooden_shovel',levels:'56-60'},
+  {name:'stone_bricks',price:2200,tool:'wooden_pickaxe',levels:'61-65'},
+  {name:'cracked_stone_bricks',price:2400,tool:'wooden_pickaxe',levels:'61-65'},
+  {name:'mossy_stone_bricks',price:2600,tool:'wooden_pickaxe',levels:'61-65'},
+  {name:'iron_block',price:6000,tool:'iron_pickaxe',levels:'56-60, 61-80'},
+  {name:'end_stone',price:8000,tool:'wooden_pickaxe',levels:'66-75'},
+  {name:'copper_block',price:9000,tool:'stone_pickaxe',levels:'71-80'},
+  {name:'gold_block',price:12000,tool:'iron_pickaxe',levels:'51-60, 61-70, 76-80'},
+  {name:'purpur_block',price:14000,tool:'wooden_pickaxe',levels:'61-70, 71-75'},
+  {name:'ancient_debris',price:18000,tool:'diamond_pickaxe',levels:'56-60'},
+  {name:'obsidian',price:18000,tool:'diamond_pickaxe',levels:'66-75'},
+  {name:'purpur_pillar',price:18000,tool:'wooden_pickaxe',levels:'71-75, 76-80'},
+  {name:'end_bricks',price:22000,tool:'wooden_pickaxe',levels:'76-80'},
+  {name:'crying_obsidian',price:26000,tool:'diamond_pickaxe',levels:'66-75'},
+  {name:'sponge',price:40000,tool:'diamond_pickaxe',levels:'61-65, 66-70, 76-80'},
+  {name:'calcite',price:60000,tool:'wooden_shovel',levels:'61-65'},
+  {name:'diamond_block',price:85000,tool:'iron_pickaxe',levels:'66-70, 76-80'},
+  {name:'netherite_block',price:220000,tool:'diamond_pickaxe',levels:'76-80'},
+];
+
+function formatToolName(t) { return t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()); }
+function formatBlockName(n) { return n.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()); }
+
+function getMinLevel(levelsStr) {
+  const m = levelsStr.match(/(\d+)/);
+  return m ? parseInt(m[1]) : 999;
+}
+
+let sortCol = 'price', sortDir = 1;
+
+function renderTable() {
+  const search = document.getElementById('blockSearch').value.toLowerCase();
+  const toolF = document.getElementById('toolFilter').value;
+  const worldF = document.getElementById('worldFilter').value;
+
+  let filtered = blocks.filter(b => {
+    if (search && !b.name.includes(search) && !formatBlockName(b.name).toLowerCase().includes(search)) return false;
+    if (toolF && b.tool !== toolF) return false;
+    if (worldF) {
+      const ranges = b.levels.split(',').map(s => s.trim());
+      const inWorld = ranges.some(r => {
+        const [lo] = r.split('-').map(Number);
+        const w = getWorld(lo);
+        return w === worldF;
+      });
+      if (!inWorld) return false;
+    }
+    return true;
+  });
+
+  filtered.sort((a, b) => {
+    let va, vb;
+    if (sortCol === 'name') { va = a.name; vb = b.name; return sortDir * va.localeCompare(vb); }
+    if (sortCol === 'price') { va = a.price; vb = b.price; }
+    if (sortCol === 'tool') { va = a.tool; vb = b.tool; return sortDir * va.localeCompare(vb); }
+    if (sortCol === 'levels') { va = getMinLevel(a.levels); vb = getMinLevel(b.levels); }
+    return sortDir * (va - vb);
+  });
+
+  const tbody = document.getElementById('blockTableBody');
+  tbody.innerHTML = filtered.map(b => `
+    <tr>
+      <td>${formatBlockName(b.name)}</td>
+      <td class="price-cell">${b.price.toLocaleString()}</td>
+      <td><span class="tool-badge tool-${b.tool}">${formatToolName(b.tool)}</span></td>
+      <td>${b.levels}</td>
+    </tr>
+  `).join('');
+}
+
+document.querySelectorAll('#blockTable thead th').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.sort;
+    if (sortCol === col) sortDir *= -1; else { sortCol = col; sortDir = 1; }
+    document.querySelectorAll('#blockTable thead th .sort-arrow').forEach(s => s.textContent = '');
+    th.querySelector('.sort-arrow').textContent = sortDir === 1 ? '\u25B2' : '\u25BC';
+    renderTable();
+  });
+});
+document.getElementById('blockSearch').addEventListener('input', renderTable);
+document.getElementById('toolFilter').addEventListener('change', renderTable);
+document.getElementById('worldFilter').addEventListener('change', renderTable);
+renderTable();
+// default sort indicator
+document.querySelector('th[data-sort="price"] .sort-arrow').textContent = '\u25B2';
+
+// ========== 3. MINE COST ==========
+(function(){
+  const bgColors = levels.map(l => worldColors[getWorld(l)] + 'CC');
+  const borderColors = levels.map(l => worldColors[getWorld(l)]);
+  new Chart(document.getElementById('mineCostChart'), {
+    type: 'bar',
+    data: {
+      labels: levels,
+      datasets: [{
+        label: 'Minutes per Area',
+        data: minutesData,
+        backgroundColor: bgColors,
+        borderColor: borderColors,
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        y: { title: { display: true, text: 'Minutes', color: '#8A8A9A' }, grid: { color: 'rgba(42,42,62,0.5)' } },
+        x: { title: { display: true, text: 'Mine Level', color: '#8A8A9A' }, grid: { display: false } }
+      },
+      plugins: {
+        tooltip: { callbacks: { label: ctx => `Level ${ctx.label}: ${ctx.parsed.y} min` } },
+        legend: { display: false }
+      }
+    }
+  });
+})();
+
+// ========== 4. TOOL PROGRESSION ==========
+(function(){
+  const tools = [
+    {n:1,name:'Wooden Pickaxe',eff:0,enchants:'Fortune'},
+    {n:2,name:'Stone Pickaxe',eff:0,enchants:'Fortune'},
+    {n:3,name:'Copper Pickaxe',eff:0,enchants:'Fortune, Speed, Jump'},
+    {n:4,name:'Iron Pickaxe',eff:0,enchants:'+CoinMaster, +OreMaster'},
+    {n:5,name:'Diamond Pickaxe',eff:0,enchants:'+Explosive, +Laser'},
+    {n:6,name:'Netherite Pickaxe',eff:0,enchants:'All enchants'},
+    {n:7,name:'Gold Pickaxe',eff:0,enchants:'All enchants'},
+    {n:8,name:'Gold Pickaxe',eff:1,enchants:'All enchants'},
+    {n:9,name:'Chicken Pickaxe',eff:1,enchants:'All enchants'},
+    {n:10,name:'Pig Pickaxe',eff:0,enchants:'All enchants'},
+    {n:11,name:'Pig Pickaxe',eff:2,enchants:'All enchants'},
+    {n:12,name:'Cow Pickaxe',eff:2,enchants:'All enchants'},
+    {n:13,name:'Zombie Pickaxe',eff:2,enchants:'All enchants'},
+    {n:14,name:'Creeper Pickaxe',eff:2,enchants:'All enchants'},
+    {n:15,name:'Creeper Pickaxe',eff:3,enchants:'All enchants'},
+    {n:16,name:'Enderman Pickaxe',eff:3,enchants:'All enchants'},
+    {n:17,name:'Enderman Pickaxe',eff:4,enchants:'All enchants'},
+    {n:18,name:'Wither Pickaxe',eff:4,enchants:'All enchants'},
+    {n:19,name:'Warden Pickaxe',eff:4,enchants:'All enchants'},
+    {n:20,name:'Warden Pickaxe',eff:5,enchants:'All enchants'},
+    {n:21,name:'Golden Drill',eff:5,enchants:'All enchants'},
+    {n:22,name:'Neon Drill',eff:5,enchants:'All enchants'},
+  ];
+  const container = document.getElementById('toolPath');
+  tools.forEach(t => {
+    const node = document.createElement('div');
+    node.className = 'tool-node';
+    node.innerHTML = `
+      <span class="step-num">#${t.n}</span>
+      <span class="tool-name">${t.name}</span>
+      <span class="eff-badge">Eff ${t.eff}</span>
+      <span class="enchants">${t.enchants}</span>
+    `;
+    container.appendChild(node);
+  });
+})();
+
+// ========== 5. ENCHANTMENT CHART ==========
+(function(){
+  const lvls = Array.from({length:11}, (_,i) => i);
+  const fortune = lvls.map(l => 1 + l * 0.5);
+  const coinmaster = lvls.map(l => 1 + l * 2.0);
+  const oremaster = lvls.map(l => 1 + l * 0.25);
+  const explosive = lvls.map(l => 1 + l * 2.0);
+  const laser = lvls.map(l => 1 + l * 1.0);
+  new Chart(document.getElementById('enchantChart'), {
+    type: 'line',
+    data: {
+      labels: lvls,
+      datasets: [
+        { label: 'Fortune (+50%/lvl)', data: fortune, borderColor: '#FFD54F', backgroundColor: '#FFD54F33', borderWidth: 2, tension: 0.2, pointRadius: 3 },
+        { label: 'CoinMaster (+200%/lvl)', data: coinmaster, borderColor: '#E53935', backgroundColor: '#E5393533', borderWidth: 2, tension: 0.2, pointRadius: 3 },
+        { label: 'OreMaster (+25%/lvl)', data: oremaster, borderColor: '#4CAF50', backgroundColor: '#4CAF5033', borderWidth: 2, tension: 0.2, pointRadius: 3 },
+        { label: 'Explosive (+200%/lvl)', data: explosive, borderColor: '#FF9800', backgroundColor: '#FF980033', borderWidth: 2, tension: 0.2, pointRadius: 3, borderDash: [5,5] },
+        { label: 'Laser (+100%/lvl)', data: laser, borderColor: '#AB47BC', backgroundColor: '#AB47BC33', borderWidth: 2, tension: 0.2, pointRadius: 3, borderDash: [3,3] },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        y: { title: { display: true, text: 'Cost Multiplier', color: '#8A8A9A' }, grid: { color: 'rgba(42,42,62,0.5)' } },
+        x: { title: { display: true, text: 'Enchantment Level', color: '#8A8A9A' }, grid: { color: 'rgba(42,42,62,0.3)' } }
+      },
+      plugins: {
+        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}x` } },
+        legend: { labels: { usePointStyle: true, padding: 14 } }
+      }
+    }
+  });
+})();
+
+// ========== 8. PRESTIGE ==========
+(function(){
+  const lvls = Array.from({length:51}, (_,i) => i);
+  const bonus = lvls.map(l => l * 5);
+  new Chart(document.getElementById('prestigeChart'), {
+    type: 'line',
+    data: {
+      labels: lvls,
+      datasets: [{
+        label: 'Cumulative Bonus (%)',
+        data: bonus,
+        borderColor: '#DDA200',
+        backgroundColor: 'rgba(221,162,0,0.1)',
+        borderWidth: 2.5,
+        pointRadius: 2, pointHoverRadius: 6,
+        fill: true, tension: 0
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        y: { title: { display: true, text: 'Bonus %', color: '#8A8A9A' }, grid: { color: 'rgba(42,42,62,0.5)' }, min: 0, max: 260 },
+        x: { title: { display: true, text: 'Prestige Level', color: '#8A8A9A' }, grid: { color: 'rgba(42,42,62,0.3)' } }
+      },
+      plugins: {
+        tooltip: { callbacks: { label: ctx => `Prestige ${ctx.label}: +${ctx.parsed.y}% bonus` } },
+        legend: { display: false }
+      }
+    }
+  });
+})();
+
+// ========== NAV HIGHLIGHT ==========
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('nav a');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => {
+    if (window.scrollY >= s.offsetTop - 100) current = s.id;
+  });
+  navLinks.forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+  });
+});
+</script>
+</body>
+</html>

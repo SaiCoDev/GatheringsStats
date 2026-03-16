@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Store, Trophy, MessageSquare, Server } from "lucide-react";
+import { LayoutDashboard, Users, Store, Trophy, MessageSquare, Server, BookOpen } from "lucide-react";
 
 const links = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -12,6 +12,7 @@ const links = [
   { href: "/leaderboards", label: "Leaderboards", icon: Trophy },
   { href: "/servers", label: "Servers", icon: Server },
   { href: "/feedback", label: "Feedback", icon: MessageSquare },
+  { href: "/economy.html", label: "Economy", icon: BookOpen, external: true },
 ];
 
 export function Nav() {
@@ -32,20 +33,26 @@ export function Nav() {
         </Link>
         <div className="flex gap-1">
           {links.map((l) => {
+            const isExternal = "external" in l && l.external;
             const isActive =
-              pathname === l.href || (l.href !== "/" && pathname.startsWith(l.href));
+              !isExternal && (pathname === l.href || (l.href !== "/" && pathname.startsWith(l.href)));
             const Icon = l.icon;
+            const cls = `flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
+              isActive
+                ? "bg-amber-500/15 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.2)]"
+                : "text-[#9892a6] hover:bg-[#1a1625] hover:text-[#e4e0ed]"
+            }`;
+            if (isExternal) {
+              return (
+                <a key={l.href} href={l.href} className={cls} aria-hidden="true">
+                  <Icon className="h-4 w-4" />
+                  {l.label}
+                </a>
+              );
+            }
             return (
-              <Link
-                key={l.href}
-                href={l.href}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
-                  isActive
-                    ? "bg-amber-500/15 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.2)]"
-                    : "text-[#9892a6] hover:bg-[#1a1625] hover:text-[#e4e0ed]"
-                }`}
-              >
-                <Icon className="h-4 w-4" />
+              <Link key={l.href} href={l.href} className={cls}>
+                <Icon className="h-4 w-4" aria-hidden="true" />
                 {l.label}
               </Link>
             );
