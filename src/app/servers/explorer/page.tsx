@@ -683,7 +683,14 @@ function OfferCard({ item }: { item: any }) {
           <RarityBadge rarity={rarity} />
         </div>
         {price != null && (
-          <span className="text-sm font-bold text-amber-400">{price.toLocaleString()} MC</span>
+          <span className="inline-flex items-center gap-1 text-sm font-bold text-amber-400">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="inline-block flex-shrink-0">
+              <circle cx="8" cy="8" r="8" fill="#DDA200"/>
+              <circle cx="8" cy="8" r="6.5" fill="#FFCA28"/>
+              <text x="8" y="11.5" textAnchor="middle" fontSize="9" fontWeight="bold" fill="#8B6914" fontFamily="Arial,sans-serif">M</text>
+            </svg>
+            {price.toLocaleString()}
+          </span>
         )}
       </div>
 
