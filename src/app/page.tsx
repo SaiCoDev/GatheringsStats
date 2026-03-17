@@ -170,3 +170,4 @@ function formatItemName(data: Record<string, unknown>): string {
   if (data.petType) return String(data.petType).replace("enchanted:", "").replaceAll("_", " ");
   return "Unknown Item";
 }
+

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Store, Trophy, MessageSquare, Server, BookOpen } from "lucide-react";
+import { LayoutDashboard, Users, Store, Trophy, MessageSquare, Server, BookOpen, BarChart3 } from "lucide-react";
 
 const links = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -11,6 +11,7 @@ const links = [
   { href: "/market", label: "Market", icon: Store },
   { href: "/leaderboards", label: "Leaderboards", icon: Trophy },
   { href: "/servers", label: "Servers", icon: Server },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/feedback", label: "Feedback", icon: MessageSquare },
   { href: "/economy.html", label: "Economy", icon: BookOpen, external: true },
 ];
